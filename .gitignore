@@ -1,0 +1,4 @@
+.env
+.env.local
+researcher-backend/.env
+node_modules/

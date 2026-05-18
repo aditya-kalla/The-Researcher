@@ -1,0 +1,121 @@
+@import "tailwindcss" source(none);
+@source "../src";
+
+/* ============================================================
+ * THE RESEARCHER — Pixel Academia design system
+ * ============================================================ */
+
+@theme {
+  --color-research-navy: #0d0f1a;
+  --color-session-dark: #080a14;
+  --color-electric-accent: #7b6fff;
+  --color-periwinkle-soft: #a8b4ff;
+  --color-lime-signal: #d4f87a;
+  --color-sakura-alert: #ffb7c5;
+  --color-cream-terminal: #f5edd3;
+  --color-mono-white: #fafafa;
+  --color-mouse-gray: #888888;
+  --color-pixel-border: #2a2d4a;
+
+  /* Map shadcn-ish names so existing UI primitives don't explode */
+  --color-background: var(--color-research-navy);
+  --color-foreground: var(--color-mono-white);
+  --color-border: var(--color-pixel-border);
+  --color-input: var(--color-pixel-border);
+  --color-ring: var(--color-electric-accent);
+  --color-primary: var(--color-electric-accent);
+  --color-primary-foreground: #000000;
+  --color-secondary: var(--color-session-dark);
+  --color-secondary-foreground: var(--color-mono-white);
+  --color-muted: var(--color-session-dark);
+  --color-muted-foreground: var(--color-mouse-gray);
+  --color-accent: var(--color-periwinkle-soft);
+  --color-accent-foreground: #000000;
+  --color-destructive: var(--color-sakura-alert);
+  --color-destructive-foreground: #000000;
+  --color-card: var(--color-session-dark);
+  --color-card-foreground: var(--color-mono-white);
+  --color-popover: var(--color-session-dark);
+  --color-popover-foreground: var(--color-mono-white);
+
+  --font-pixel: "Press Start 2P", monospace;
+  --font-mono: "JetBrains Mono", "Courier New", monospace;
+  --font-body: Georgia, "Times New Roman", serif;
+
+  --shadow-pixel: 2px 2px 0px #7b6fff;
+  --shadow-pixel-dark: 2px 2px 0px #000000;
+  --shadow-pixel-lg: 4px 4px 0px #7b6fff;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-pixel-border);
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    background-color: var(--color-research-navy);
+    color: var(--color-mono-white);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Pixel cursors */
+  body {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M0 0h4v12h4V8h4V4H8V0z' fill='%23F5EDD3' stroke='%230D0F1A' stroke-width='1'/%3E%3C/svg%3E")
+        0 0,
+      auto;
+  }
+
+  button,
+  a,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='20'%3E%3Cpath d='M0 0h4v16h4v-8h4v-4h4v4h-4v4h-4v4H8v4H4v-4H0z' fill='%23F5EDD3' stroke='%230D0F1A' stroke-width='1'/%3E%3C/svg%3E")
+        4 0,
+      pointer;
+  }
+}
+
+.font-pixel {
+  font-family: var(--font-pixel);
+  letter-spacing: 0.02em;
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Graph paper overlay */
+.graph-paper {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E");
+}
+.graph-paper-dark {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='rgba(0,0,0,0.06)' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+/* Blinking terminal cursor */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(123, 111, 255, 0.5); }
+  50% { box-shadow: 0 0 16px rgba(123, 111, 255, 0.9); }
+}
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Scrollbar styling for terminals */
+.terminal-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.terminal-scroll::-webkit-scrollbar-track { background: #000; }
+.terminal-scroll::-webkit-scrollbar-thumb { background: var(--color-pixel-border); }
