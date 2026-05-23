@@ -21,6 +21,7 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
     sessions,
     currentSessionId,
     setCurrentSession,
+    deleteAllSessions,
     user,
     logout,
     uploadedSources,
@@ -65,6 +66,10 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
 
   return (
     <aside className="flex w-[260px] shrink-0 flex-col border-r border-pixel-border bg-session-dark">
+      <div className="flex items-center gap-2 border-b border-pixel-border px-3 py-4">
+        <span className="text-electric-accent">◆</span>
+        <span className="font-pixel text-[8px] tracking-wider text-mouse-gray">SYSTEM DOCK</span>
+      </div>
       <button
         onClick={onNewSession}
         className="m-3 h-12 border-2 border-black bg-electric-accent font-pixel text-[10px] text-black shadow-[3px_3px_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0_#000] transition-all"
@@ -73,7 +78,17 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
       </button>
 
       <div className="flex-1 overflow-y-auto px-1">
-        <p className="px-3 pb-2 pt-1 font-pixel text-[8px] tracking-wider text-mouse-gray">SESSIONS</p>
+        <div className="flex items-center justify-between px-3 pb-2 pt-2">
+          <span className="font-pixel text-[8px] tracking-wider text-mouse-gray">SESSIONS</span>
+          {sessions.length > 0 && (
+            <button
+              onClick={deleteAllSessions}
+              className="font-pixel text-[7px] text-sakura-alert hover:underline"
+            >
+              CLEAR ALL
+            </button>
+          )}
+        </div>
         {sessions.length === 0 && (
           <p className="px-3 font-mono text-[11px] text-mouse-gray">No sessions yet.</p>
         )}
@@ -81,7 +96,10 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
           <SessionRow key={s.id} s={s} active={s.id === currentSessionId} onClick={() => setCurrentSession(s.id)} />
         ))}
 
-        <p className="px-3 pb-2 pt-6 font-pixel text-[8px] tracking-wider text-mouse-gray">📁 UPLOADED SOURCES</p>
+        <div className="px-3 pb-2 pt-6">
+          <p className="font-pixel text-[8px] tracking-wider text-mouse-gray">◉ RESEARCH VAULT</p>
+          <p className="mt-1 font-mono text-[9px] text-mouse-gray">Feed papers as ground-truth context</p>
+        </div>
         <div
           onClick={() => inputRef.current?.click()}
           onDragOver={(e) => {
@@ -105,6 +123,11 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
             className="hidden"
             onChange={(e) => e.target.files && accept(e.target.files)}
           />
+        </div>
+        <div className="mx-3 mt-2 flex justify-center gap-2">
+          <span className="border border-pixel-border px-1.5 py-0.5 font-pixel text-[7px] text-mouse-gray">.PDF</span>
+          <span className="border border-pixel-border px-1.5 py-0.5 font-pixel text-[7px] text-mouse-gray">.TXT</span>
+          <span className="border border-pixel-border px-1.5 py-0.5 font-pixel text-[7px] text-mouse-gray">.MD</span>
         </div>
         {error && (
           <p className="mx-3 mt-2 font-pixel text-[8px] text-sakura-alert">{error}</p>
@@ -138,16 +161,30 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
         </ul>
       </div>
 
-      <div className="flex items-center justify-between border-t border-pixel-border p-3">
+      <div className="mx-2 mb-2 border border-pixel-border bg-black/40 p-2">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center bg-electric-accent font-pixel text-[8px] text-black">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-electric-accent font-pixel text-[8px] text-black">
             {user?.username.slice(0, 2).toUpperCase() ?? "??"}
           </div>
-          <span className="font-mono text-[11px] text-mono-white">{user?.username ?? "guest"}</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-mono text-[11px] text-mono-white">{user?.username ?? "guest"}</p>
+            <p className="truncate font-mono text-[9px] text-mouse-gray">{user?.email ?? "guest@system.local"}</p>
+          </div>
         </div>
-        <button onClick={logout} className="font-pixel text-[8px] text-sakura-alert hover:underline">
-          LOGOUT
-        </button>
+        <div className="mt-3 flex gap-2">
+          <a
+            href="/settings"
+            className="flex-1 border border-pixel-border px-2 py-1 text-center font-pixel text-[7px] text-mouse-gray transition-colors hover:text-cream-terminal"
+          >
+            ⚙ SETTINGS
+          </a>
+          <button
+            onClick={logout}
+            className="flex-1 border border-sakura-alert/30 px-2 py-1 text-center font-pixel text-[7px] text-sakura-alert transition-colors hover:underline"
+          >
+            LOGOUT
+          </button>
+        </div>
       </div>
     </aside>
   );

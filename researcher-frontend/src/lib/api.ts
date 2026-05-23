@@ -6,6 +6,12 @@ export interface ResearchRequest {
   length_mode: "Summary" | "Detailed" | "Deep Dive";
   uploaded_sources: string[];
   command?: string;
+  filters?: {
+    dateRange: { from: number; to: number };
+    country: string;
+    journalRank: string;
+    minCitations: number;
+  };
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL

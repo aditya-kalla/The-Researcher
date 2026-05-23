@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { RetroWindow } from "./RetroWindow";
+import { useStore } from "@/store/useStore";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Level = 1 | 2 | 3 | 4;
 type LengthMode = "Summary" | "Detailed" | "Deep Dive";
@@ -10,7 +12,17 @@ export function QueryInput({
   defaultLevel,
   defaultLengthMode,
 }: {
-  onSubmit: (topic: string, level: Level, lengthMode: LengthMode) => void;
+  onSubmit: (
+    topic: string, 
+    level: Level, 
+    lengthMode: LengthMode, 
+    filters: {
+      dateRange: { from: number; to: number };
+      country: string;
+      journalRank: string;
+      minCitations: number;
+    }
+  ) => void;
   loading: boolean;
   defaultLevel: Level;
   defaultLengthMode: LengthMode;
@@ -18,10 +30,27 @@ export function QueryInput({
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState<Level>(defaultLevel);
   const [lengthMode, setLengthMode] = useState<LengthMode>(defaultLengthMode);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const {
+    dateRangeFilter,
+    countryFilter,
+    journalRankFilter,
+    minCitationsFilter,
+    setDateRangeFilter,
+    setCountryFilter,
+    setJournalRankFilter,
+    setMinCitationsFilter,
+  } = useStore();
 
   const submit = () => {
     if (!topic.trim() || loading) return;
-    onSubmit(topic.trim(), level, lengthMode);
+    onSubmit(topic.trim(), level, lengthMode, {
+      dateRange: dateRangeFilter,
+      country: countryFilter,
+      journalRank: journalRankFilter,
+      minCitations: minCitationsFilter,
+    });
   };
 
   return (
@@ -75,6 +104,115 @@ export function QueryInput({
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="pt-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="font-pixel text-[8px] text-mouse-gray hover:text-cream-terminal"
+          >
+            {showFilters ? "▲ INGESTION FILTERS" : "▼ INGESTION FILTERS"}
+          </button>
+          
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 space-y-4 border-t border-pixel-border pt-4">
+                  {/* CONTROL A */}
+                  <div>
+                    <p className="mb-1.5 font-pixel text-[8px] text-mouse-gray">TEMPORAL HORIZON</p>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <input
+                        type="number"
+                        value={dateRangeFilter.from}
+                        onChange={(e) => setDateRangeFilter({ ...dateRangeFilter, from: parseInt(e.target.value) || 2000 })}
+                        className="w-20 bg-black/30 border border-pixel-border font-mono text-[12px] text-mono-white px-2 py-1.5 outline-none"
+                      />
+                      <span className="font-mono text-mouse-gray">TO</span>
+                      <input
+                        type="number"
+                        value={dateRangeFilter.to}
+                        onChange={(e) => setDateRangeFilter({ ...dateRangeFilter, to: parseInt(e.target.value) || 2026 })}
+                        className="w-20 bg-black/30 border border-pixel-border font-mono text-[12px] text-mono-white px-2 py-1.5 outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { label: "SOTA (2023–2026)", range: { from: 2023, to: 2026 } },
+                        { label: "MODERN (2015–2022)", range: { from: 2015, to: 2022 } },
+                        { label: "LEGACY (2001–2014)", range: { from: 2001, to: 2014 } },
+                        { label: "ALL TIME", range: { from: 1900, to: 2026 } },
+                      ].map((btn) => {
+                        const isActive = dateRangeFilter.from === btn.range.from && dateRangeFilter.to === btn.range.to;
+                        return (
+                          <button
+                            key={btn.label}
+                            onClick={() => setDateRangeFilter(btn.range)}
+                            className={`px-2 py-1.5 font-pixel text-[8px] transition-colors ${
+                              isActive ? "bg-electric-accent text-black" : "border border-pixel-border text-mouse-gray hover:text-mono-white"
+                            }`}
+                          >
+                            {btn.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* CONTROL B */}
+                  <div>
+                    <p className="mb-1.5 font-pixel text-[8px] text-mouse-gray">ORIGIN COUNTRY</p>
+                    <input
+                      type="text"
+                      placeholder="e.g. USA, China, UK — leave blank for all"
+                      value={countryFilter}
+                      onChange={(e) => setCountryFilter(e.target.value)}
+                      className="w-full bg-transparent border border-pixel-border font-mono text-[12px] text-mono-white px-2 py-1.5 outline-none"
+                    />
+                  </div>
+
+                  {/* CONTROL C */}
+                  <div>
+                    <p className="mb-1.5 font-pixel text-[8px] text-mouse-gray">JOURNAL RANK (SCIMAGO)</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(["ANY", "Q1", "Q2", "Q3", "Q4"] as const).map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => setJournalRankFilter(r === "ANY" ? "any" : r)}
+                          className={`px-3 py-1.5 font-pixel text-[8px] transition-colors ${
+                            (journalRankFilter.toUpperCase() === r)
+                              ? "bg-electric-accent text-black"
+                              : "border border-pixel-border text-mouse-gray hover:text-mono-white"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* CONTROL D */}
+                  <div>
+                    <p className="mb-1.5 font-pixel text-[8px] text-mouse-gray">MIN CITATIONS</p>
+                    <input
+                      type="number"
+                      min={0}
+                      step={10}
+                      value={minCitationsFilter}
+                      onChange={(e) => setMinCitationsFilter(parseInt(e.target.value) || 0)}
+                      className="w-full bg-transparent border border-pixel-border font-mono text-[12px] text-mono-white px-2 py-1.5 outline-none mb-1"
+                    />
+                    <p className="font-mono text-[9px] text-mouse-gray">≥ {minCitationsFilter} citations required</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <button

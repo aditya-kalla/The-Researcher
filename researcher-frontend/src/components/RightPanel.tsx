@@ -45,20 +45,7 @@ export function RightPanel({ data }: { data: ResearchResponse | null }) {
         )}
       </RetroWindow>
 
-      <RetroWindow title="SESSION_STATS.log" variant="terminal" collapsible>
-        {data ? (
-          <div className="space-y-1 font-mono text-[11px] text-lime-signal">
-            <p>{`> Decay flags: ${data.session_stats.decay_flags}`}</p>
-            <p>{`> Gaps found: ${data.session_stats.gap_count}`}</p>
-            <p>{`> Cross-domain: ${data.session_stats.cross_domain_links}`}</p>
-            <p>{`> Frontier: ${data.session_stats.frontier_cards}`}</p>
-            <p>{`> Agents: 7`}</p>
-            <p>{`> Level: L${data.session.level}`}</p>
-          </div>
-        ) : (
-          <p className="font-mono text-[11px] text-mouse-gray">awaiting session…</p>
-        )}
-      </RetroWindow>
+
     </aside>
   );
 }

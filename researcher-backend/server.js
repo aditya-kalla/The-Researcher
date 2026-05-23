@@ -87,8 +87,8 @@ RETURN THIS EXACT JSON STRUCTURE:
     "key_caveat": "string — the single most important limitation"
   },
   "dashboard": {
-    "executive_summary": { "text": "2-4 sentence summary", "confidence": 82 },
-    "core_mechanisms": { "text": "detailed explanation scaled to length_mode", "equations": [], "confidence": 80 },
+    "executive_summary": { "text": "A rich, multi-paragraph executive summary of 200-350 words. Must include: (1) a plain-language definition of the topic, (2) WHY it matters scientifically and practically, (3) the current state of the field, (4) the single most contested or uncertain aspect. Scaled by length_mode: Summary=150w, Detailed=300w, Deep Dive=500w. Never write fewer than 3 paragraphs.", "confidence": 82 },
+    "core_mechanisms": { "text": "A structured multi-section explanation of HOW the topic works at a mechanistic level. Must include: (1) the primary mechanism in plain terms, (2) the key variables and what changing them does, (3) how sub-components interact, (4) where current models break down. Scaled by length_mode: Summary=200w, Detailed=400w, Deep Dive=700w+. For Level 3-4, include minimum 2 LaTeX-formatted equations in the equations array. Never reduce to a single paragraph.", "equations": [], "confidence": 80 },
     "key_claims": [
       { "claim": "string", "confidence": 88 },
       { "claim": "string", "confidence": 74 },
@@ -144,7 +144,7 @@ RETURN THIS EXACT JSON STRUCTURE:
 
 RULES:
 - agent_stream: ALL 8 agents in exact order shown above
-- key_claims: use field "claim" NOT "text". Minimum 4 items.
+- key_claims: use field "claim" NOT "text". Minimum 4 for Summary, 6 for Detailed, 8 for Deep Dive. Each claim must be a COMPLETE sentence stating a specific, falsifiable finding — not a vague category. Bad example: 'Gravity affects objects'. Good example: 'Gravitational time dilation causes clocks at sea level to run approximately 45 microseconds per day slower than clocks in GPS satellites, requiring relativistic correction in navigation systems (Ashby, 2002).' Include author + year inline where possible.
 - epistemic_decay.stale: MINIMUM 1 item, NEVER skip
 - epistemic_decay.fresh: MINIMUM 2 items
 - frontier_cards: EXACTLY 8 cards — 2 FOUNDATION, 3 FRONTIER (year 2024-2026), 2 WILDCARD, 1 HARDWARE_BRIDGE
@@ -154,6 +154,9 @@ RULES:
 - session_stats.frontier_cards must always equal 8
 - NEVER say "As an AI" or break character
 - NEVER produce output that fails JSON.parse()
+- executive_summary.text: MINIMUM 150 words for Summary, 300 for Detailed, 500 for Deep Dive. Violating this minimum is a critical failure.
+- core_mechanisms.text: MINIMUM 200 words for Summary, 400 for Detailed, 700 for Deep Dive. Must have distinct paragraphs separated by newlines, not a single block.
+- key_claims: MINIMUM 4 for Summary, 6 for Detailed, 8 for Deep Dive.
 
 SPECIAL COMMANDS — when input contains these phrases, populate special_response:
 "Logic Lab: show Advocate vs Skeptic debate" → type: "logic_lab" with round_1_advocate, round_2_skeptic, round_3_advocate_response, round_4_empiricist_verdict

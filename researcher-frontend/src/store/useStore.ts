@@ -40,6 +40,15 @@ interface AppState {
   uploadedSources: string[];
   addUploadedSource: (name: string) => void;
   removeUploadedSource: (name: string) => void;
+
+  dateRangeFilter: { from: number; to: number };
+  countryFilter: string;
+  journalRankFilter: "any" | "Q1" | "Q2" | "Q3" | "Q4";
+  minCitationsFilter: number;
+  setDateRangeFilter: (range: { from: number; to: number }) => void;
+  setCountryFilter: (country: string) => void;
+  setJournalRankFilter: (rank: "any" | "Q1" | "Q2" | "Q3" | "Q4") => void;
+  setMinCitationsFilter: (count: number) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -89,6 +98,15 @@ export const useStore = create<AppState>()(
         ),
       removeUploadedSource: (name) =>
         set((st) => ({ uploadedSources: st.uploadedSources.filter((n) => n !== name) })),
+
+      dateRangeFilter: { from: 2001, to: 2026 },
+      countryFilter: "",
+      journalRankFilter: "any",
+      minCitationsFilter: 0,
+      setDateRangeFilter: (range) => set({ dateRangeFilter: range }),
+      setCountryFilter: (country) => set({ countryFilter: country }),
+      setJournalRankFilter: (rank) => set({ journalRankFilter: rank }),
+      setMinCitationsFilter: (count) => set({ minCitationsFilter: count }),
     }),
     {
       name: "the-researcher-store",
@@ -100,6 +118,10 @@ export const useStore = create<AppState>()(
         defaultLengthMode: s.defaultLengthMode,
         geminiApiKey: s.geminiApiKey,
         uploadedSources: s.uploadedSources,
+        dateRangeFilter: s.dateRangeFilter,
+        countryFilter: s.countryFilter,
+        journalRankFilter: s.journalRankFilter,
+        minCitationsFilter: s.minCitationsFilter,
       }),
     }
   )

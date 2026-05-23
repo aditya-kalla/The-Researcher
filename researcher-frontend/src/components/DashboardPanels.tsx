@@ -49,7 +49,7 @@ export function DashboardPanels({
       {/* Executive summary */}
       <motion.div variants={item}>
         <RetroWindow title="EXECUTIVE_SUMMARY.exe">
-          <p className="font-body text-[16px] leading-[1.9] text-[rgba(245,237,211,0.9)]">{d.executive_summary.text}</p>
+          <p className="whitespace-pre-line font-body text-[16px] leading-[1.9] text-[rgba(245,237,211,0.9)]">{d.executive_summary.text}</p>
           <div className="mt-4">
             <PixelProgressBar value={d.executive_summary.confidence} label="CONFIDENCE" color="electric" />
           </div>
@@ -59,7 +59,7 @@ export function DashboardPanels({
       {/* Core mechanisms */}
       <motion.div variants={item}>
         <RetroWindow title="CORE_MECHANISMS.sys">
-          <p className="font-body text-[14px] leading-[1.8] text-[rgba(245,237,211,0.8)]">{d.core_mechanisms.text}</p>
+          <p className="whitespace-pre-line font-body text-[14px] leading-[1.8] text-[rgba(245,237,211,0.8)]">{d.core_mechanisms.text}</p>
           {d.core_mechanisms.equations.length > 0 && (
             <div className="mt-3 space-y-2 border border-pixel-border bg-black p-3">
               {d.core_mechanisms.equations.map((eq, i) => (

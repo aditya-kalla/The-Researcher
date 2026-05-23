@@ -57,7 +57,18 @@ function DashboardPage() {
   const activeData = researchData ?? current?.researchData ?? null;
   const dashboardReady = !!activeData && (!showStream || streamComplete);
 
-  const runResearch = async (topic: string, level: 1 | 2 | 3 | 4, lengthMode: "Summary" | "Detailed" | "Deep Dive") => {
+  const runResearch = async (
+    topic: string, 
+    level: 1 | 2 | 3 | 4, 
+    lengthMode: "Summary" | "Detailed" | "Deep Dive",
+    filters?: {
+      dateRange: { from: number; to: number };
+      country: string;
+      journalRank: string;
+      minCitations: number;
+    }
+  ) => {
+    if (filters) console.log('[FILTERS]', filters);
     setIsResearching(true);
     setStreamComplete(false);
     setShowStream(true);
@@ -70,6 +81,7 @@ function DashboardPage() {
         level,
         length_mode: lengthMode,
         uploaded_sources: uploadedSources,
+        filters,
       });
       const session: ResearchSession = {
         id: crypto.randomUUID(),
