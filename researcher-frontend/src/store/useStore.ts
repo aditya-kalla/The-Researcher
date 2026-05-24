@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AgentStreamEntry, ResearchResponse, ResearchSession } from "@/lib/types";
+import type { AgentStreamEntry, ReferencedSource, ResearchResponse, ResearchSession } from "@/lib/types";
 
 interface AppState {
   isAuthenticated: boolean;
@@ -32,6 +32,9 @@ interface AppState {
   showExportModal: boolean;
   setShowExportModal: (v: boolean) => void;
 
+  isBooting: boolean;
+  setIsBooting: (v: boolean) => void;
+
   defaultLevel: 1 | 2 | 3 | 4;
   defaultLengthMode: "Summary" | "Detailed" | "Deep Dive";
   geminiApiKey: string;
@@ -49,6 +52,11 @@ interface AppState {
   setCountryFilter: (country: string) => void;
   setJournalRankFilter: (rank: "any" | "Q1" | "Q2" | "Q3" | "Q4") => void;
   setMinCitationsFilter: (count: number) => void;
+
+  sourceVaultOpen: boolean;
+  activeVaultSource: ReferencedSource | null;
+  setSourceVaultOpen: (open: boolean) => void;
+  setActiveVaultSource: (source: ReferencedSource | null) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -84,6 +92,9 @@ export const useStore = create<AppState>()(
       showExportModal: false,
       setShowExportModal: (v) => set({ showExportModal: v }),
 
+      isBooting: false,
+      setIsBooting: (v) => set({ isBooting: v }),
+
       defaultLevel: 2,
       defaultLengthMode: "Detailed",
       geminiApiKey: "",
@@ -107,6 +118,11 @@ export const useStore = create<AppState>()(
       setCountryFilter: (country) => set({ countryFilter: country }),
       setJournalRankFilter: (rank) => set({ journalRankFilter: rank }),
       setMinCitationsFilter: (count) => set({ minCitationsFilter: count }),
+
+      sourceVaultOpen: false,
+      activeVaultSource: null,
+      setSourceVaultOpen: (open) => set({ sourceVaultOpen: open }),
+      setActiveVaultSource: (source) => set({ activeVaultSource: source }),
     }),
     {
       name: "the-researcher-store",

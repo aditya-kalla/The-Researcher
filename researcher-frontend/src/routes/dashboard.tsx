@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { callResearchAPI } from "@/lib/api";
@@ -12,14 +12,171 @@ import { DashboardPanels } from "@/components/DashboardPanels";
 import { FrontierCard } from "@/components/FrontierCard";
 import { RetroWindow } from "@/components/RetroWindow";
 import { PixelProgressBar } from "@/components/PixelProgressBar";
+import { Typewriter } from "@/components/Typewriter";
 import { PDFExportModal } from "@/components/PDFExportModal";
 import { SpecialPanelModal } from "@/components/SpecialPanels";
+import { SourceVaultDrawer } from "@/components/SourceVaultDrawer";
 import type { ResearchResponse, ResearchSession, SpecialResponse } from "@/lib/types";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
   head: () => ({ meta: [{ title: "Dashboard — THE RESEARCHER" }] }),
 });
+
+/* ─────────────────────────────────────────────────
+ * OBSERVATORY OVERLAY — full-screen boot sequence
+ * ───────────────────────────────────────────────── */
+
+const OBSERVER_AGENTS = [
+  "ORCHESTRATOR",
+  "SCOUT",
+  "CLASSIFIER",
+  "GRAPH_ARCHITECT",
+  "ADVOCATE",
+  "SKEPTIC",
+  "EMPIRICIST",
+];
+
+function ObservatoryOverlay() {
+  const { isBooting, setIsBooting } = useStore();
+  const [activeAgents, setActiveAgents] = useState<number[]>([]);
+
+  // Auto-dismiss after 3.5 seconds to keep it a brief, cinematic awakening
+  useEffect(() => {
+    if (!isBooting) return;
+    const timer = setTimeout(() => {
+      setIsBooting(false);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [isBooting, setIsBooting]);
+
+  // Reset pill state each time isBooting flips to true
+  useEffect(() => {
+    if (isBooting) setActiveAgents([]);
+  }, [isBooting]);
+
+  // Stagger agent activation at 500ms intervals
+  useEffect(() => {
+    const timers = OBSERVER_AGENTS.map((_, i) =>
+      setTimeout(() => {
+        setActiveAgents((prev) => [...prev, i]);
+      }, i * 500),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <motion.div
+      key="observatory-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(10, 12, 24, 0.75)",
+        backdropFilter: "blur(3px)",
+        WebkitBackdropFilter: "blur(3px)",
+      }}
+    >
+      {/* LAYER 2 — SUNNY EYE VIDEO */}
+      <div 
+        className="rounded-xl overflow-hidden" 
+        style={{ position: "relative", width: 320, height: 320 }}
+      >
+        {/* E. Glow behind video (z-index 0) */}
+        <div
+          className="observatory-glow"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            background:
+              "radial-gradient(ellipse at center, rgba(123, 111, 255, 0.08) 0%, transparent 70%)",
+          }}
+        />
+
+        {/* A. Video */}
+        <video
+          src="/assets/eyevideo.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="crt-video video-pixelated"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            imageRendering: "pixelated",
+            opacity: 0.88,
+            mixBlendMode: "screen",
+            position: "relative",
+            zIndex: 1,
+          }}
+        />
+
+        {/* B. CRT scanline overlay */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            background:
+              "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.12) 3px, rgba(0, 0, 0, 0.12) 4px)",
+            zIndex: 2,
+          }}
+        />
+
+        {/* C. Vignette overlay */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            background:
+              "radial-gradient(ellipse at center, transparent 35%, rgba(13, 15, 26, 0.75) 100%)",
+            zIndex: 3,
+          }}
+        />
+      </div>
+
+      {/* LAYER 3 — TYPEWRITER STATUS LINE */}
+      <div className="mt-8">
+        <Typewriter
+          text="AWAKENING 7-AGENT COUNCIL... CALIBRATING EPISTEMIC INSTRUMENTS..."
+          className="font-mono text-[11px] text-lime-signal tracking-wider"
+          speed={35}
+        />
+      </div>
+
+      {/* LAYER 4 — AGENT ACTIVATION PILLS */}
+      <div className="mt-5 flex flex-wrap justify-center gap-2">
+        {OBSERVER_AGENTS.map((agent, i) => {
+          const active = activeAgents.includes(i);
+          return (
+            <span
+              key={agent}
+              className={`border px-2 py-1 font-pixel text-[7px] tracking-wider transition-all duration-700 ${
+                active
+                  ? "text-lime-signal border-lime-signal/30 bg-lime-signal/5"
+                  : "text-mouse-gray border-pixel-border/40"
+              }`}
+            >
+              {active ? `● ${agent}` : `○ ${agent}`}
+            </span>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
 
 function DashboardPage() {
   const isMobile = useIsMobile();
@@ -40,7 +197,17 @@ function DashboardPage() {
     defaultLengthMode,
     showExportModal,
     setShowExportModal,
+    isBooting,
+    setIsBooting,
+    sourceVaultOpen,
+    setSourceVaultOpen,
+    setActiveVaultSource,
   } = useStore();
+
+  // Trigger boot sequence when first entering the dashboard
+  useEffect(() => {
+    setIsBooting(true);
+  }, [setIsBooting]);
 
   const [isResearching, setIsResearching] = useState(false);
   const [showStream, setShowStream] = useState(false);
@@ -69,6 +236,7 @@ function DashboardPage() {
     }
   ) => {
     if (filters) console.log('[FILTERS]', filters);
+    setIsBooting(true);
     setIsResearching(true);
     setStreamComplete(false);
     setShowStream(true);
@@ -94,9 +262,11 @@ function DashboardPage() {
       };
       setResearchData(data);
       setPendingSession(session);
+      setIsBooting(false);
     } catch {
       setIsResearching(false);
       setShowStream(false);
+      setIsBooting(false);
     }
   };
 
@@ -164,6 +334,10 @@ function DashboardPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-research-navy text-mono-white">
+      {/* OBSERVATORY OVERLAY */}
+      <AnimatePresence>
+        {isBooting && <ObservatoryOverlay />}
+      </AnimatePresence>
       {/* TOP NAV */}
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-pixel-border bg-[#0A0C18] px-3">
         <div className="flex items-center gap-2">
@@ -174,8 +348,24 @@ function DashboardPage() {
           >
             {sidebarCollapsed ? "▷" : "◁"}
           </button>
-          <a href="/" className="font-pixel text-[11px] text-cream-terminal">
-            ◆ THE RESEARCHER
+          <a href="/" className="flex items-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 32 32" className="pulse-glow" xmlns="http://www.w3.org/2000/svg">
+              <rect x="14" y="14" width="4" height="4" fill="#0D0F1A" />
+              <rect x="15" y="15" width="2" height="2" fill="#D4F87A" />
+              <rect x="15" y="2" width="2" height="8" fill="#7B6FFF" />
+              <rect x="15" y="22" width="2" height="8" fill="#7B6FFF" />
+              <rect x="2" y="15" width="8" height="2" fill="#7B6FFF" />
+              <rect x="22" y="15" width="8" height="2" fill="#7B6FFF" />
+              <rect x="6" y="6" width="2" height="2" fill="#7B6FFF" />
+              <rect x="24" y="6" width="2" height="2" fill="#7B6FFF" />
+              <rect x="6" y="24" width="2" height="2" fill="#7B6FFF" />
+              <rect x="24" y="24" width="2" height="2" fill="#7B6FFF" />
+              <rect x="12" y="10" width="8" height="2" fill="#7B6FFF" />
+              <rect x="12" y="20" width="8" height="2" fill="#7B6FFF" />
+              <rect x="10" y="12" width="2" height="8" fill="#7B6FFF" />
+              <rect x="20" y="12" width="2" height="8" fill="#7B6FFF" />
+            </svg>
+            <span className="font-pixel text-[11px] text-cream-terminal">THE RESEARCHER</span>
           </a>
         </div>
         <div className="font-mono text-[12px] text-periwinkle-soft">
@@ -189,6 +379,21 @@ function DashboardPage() {
               className="font-pixel text-[12px] text-periwinkle-soft hover:text-cream-terminal"
             >
               📄
+            </button>
+          )}
+          {activeData && (
+            <button
+              onClick={() => {
+                setSourceVaultOpen(!sourceVaultOpen);
+                if (sourceVaultOpen) setActiveVaultSource(null);
+              }}
+              className={`border px-3 py-1.5 font-pixel text-[8px] transition-all duration-200 ${
+                sourceVaultOpen
+                  ? "border-electric-accent/50 bg-electric-accent/[0.08] text-electric-accent"
+                  : "border-pixel-border text-mouse-gray hover:text-cream-terminal hover:border-cream-terminal/40"
+              }`}
+            >
+              {sourceVaultOpen ? "◈ VAULT OPEN" : "◈ SOURCE VAULT"}
             </button>
           )}
           <a
@@ -276,12 +481,6 @@ function DashboardPage() {
                   </RetroWindow>
                 )}
 
-                {isResearching && !researchData && (
-                  <RetroWindow title="AGENT_STATE.exe" variant="terminal">
-                    <BootingTerminal />
-                  </RetroWindow>
-                )}
-
                 {dashboardReady && activeData && (
                   <>
                     <DashboardPanels
@@ -360,16 +559,14 @@ function DashboardPage() {
         onClose={closePaperSidebar}
         onResearchPaper={researchPaper}
       />
-    </div>
-  );
-}
-
-function BootingTerminal() {
-  return (
-    <div className="bg-black p-3 font-mono text-[11px] text-lime-signal">
-      <p>⣾ booting cognitive pipeline…</p>
-      <p>⣷ summoning 7 agents…</p>
-      <span className="cursor-blink">█</span>
+      <SourceVaultDrawer
+        sources={activeData?.referenced_sources ?? []}
+        isOpen={sourceVaultOpen}
+        onClose={() => {
+          setSourceVaultOpen(false);
+          setActiveVaultSource(null);
+        }}
+      />
     </div>
   );
 }
@@ -417,6 +614,29 @@ function PaperSidebar({
   const linkedDecay = researchData?.dashboard.epistemic_decay.stale[0];
   const linkedClaim = researchData?.dashboard.key_claims[0];
 
+  const [vaultTab, setVaultTab] = useState<"overview" | "document">("overview");
+
+  // Reset vaultTab to "overview" whenever a new paper is selected
+  useEffect(() => {
+    setVaultTab("overview");
+  }, [paper?.id]);
+
+  const downloadAbstract = () => {
+    if (!paper) return;
+    const content = generateAbstract(paper);
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${paper.paper_title.slice(0, 40).replace(/[^a-z0-9]/gi, "_").toLowerCase()}_abstract.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const docData = paper && researchData ? generateFullDocumentSections(paper, researchData) : null;
+
   return (
     <AnimatePresence>
       {open && paper && (
@@ -433,15 +653,16 @@ function PaperSidebar({
             exit={mobile ? { y: "100%" } : { x: "100%" }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className={`fixed z-40 overflow-hidden bg-session-dark ${
+            className={`fixed z-40 overflow-hidden bg-session-dark flex flex-col ${
               mobile
                 ? "bottom-0 left-0 right-0 h-[80vh] rounded-t-2xl border-t border-pixel-border"
                 : "right-0 top-0 h-full w-[420px] border-l border-pixel-border"
             }`}
             style={{ backgroundColor: "#080A14", borderColor: "var(--color-pixel-border)" }}
           >
-            <div className="flex h-full flex-col">
-              <div className="flex items-start justify-between border-b border-pixel-border px-5 py-4">
+            {/* SIDEBAR HEADER */}
+            <div className="border-b border-pixel-border px-5 pt-4">
+              <div className="flex items-start justify-between mb-4">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="border px-2 py-1 font-pixel text-[8px]" style={categoryStyles[paper.category]}>
@@ -469,66 +690,171 @@ function PaperSidebar({
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-5 py-4">
-                <div className="mb-5">
-                  <PixelProgressBar value={paper.confidence} label="CONFIDENCE" color="electric" />
-                </div>
+              {/* TAB BAR */}
+              <div className="flex gap-6">
+                <button
+                  onClick={() => setVaultTab("overview")}
+                  className={`-mb-px border-b-2 pb-3 font-pixel text-[8px] transition-colors ${
+                    vaultTab === "overview"
+                      ? "border-electric-accent text-electric-accent"
+                      : "border-transparent text-mouse-gray hover:text-mono-white"
+                  }`}
+                >
+                  ◉ OVERVIEW
+                </button>
+                <button
+                  onClick={() => setVaultTab("document")}
+                  className={`-mb-px border-b-2 pb-3 font-pixel text-[8px] transition-colors ${
+                    vaultTab === "document"
+                      ? "border-electric-accent text-electric-accent"
+                      : "border-transparent text-mouse-gray hover:text-mono-white"
+                  }`}
+                >
+                  ◈ FULL DOCUMENT
+                </button>
+              </div>
+            </div>
 
-                <section className="mb-5">
-                  <p className="font-body text-[13px] italic leading-[1.8] text-[rgba(245,237,211,0.8)]">
-                    {paper.the_why}
-                  </p>
-                </section>
-
-                <RetroWindow title="ABSTRACT.txt" variant="terminal">
-                  <div className="space-y-3">
-                    <p className="font-mono text-[8px] text-mouse-gray">AI-Generated Abstract</p>
-                    <p className="font-body text-[13px] leading-[1.8] text-[rgba(245,237,211,0.85)]">
-                      {generateAbstract(paper)}
-                    </p>
+            {/* SCROLLABLE CONTENT */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {vaultTab === "overview" && (
+                <>
+                  <div className="mb-5">
+                    <PixelProgressBar value={paper.confidence} label="CONFIDENCE" color="electric" />
                   </div>
-                </RetroWindow>
 
-                <div className="mt-5">
-                  <RetroWindow title="SESSION_LINKS.dat">
-                    <div className="space-y-3 font-body text-[13px] leading-[1.7] text-[rgba(245,237,211,0.85)]">
-                      {linkedGap && <p>Addresses Gap #{linkedGap.id}: {truncateText(linkedGap.gap, 110)}</p>}
-                      {linkedDecay && <p>Relates to decay: {truncateText(linkedDecay.claim, 110)}</p>}
-                      {linkedClaim && <p>Supports claim: {truncateText(linkedClaim.claim, 110)}</p>}
-                      {!linkedGap && !linkedDecay && !linkedClaim && (
-                        <p className="text-mouse-gray">No session links available yet.</p>
-                      )}
+                  <section className="mb-5">
+                    <p className="font-body text-[13px] italic leading-[1.8] text-[rgba(245,237,211,0.8)]">
+                      {paper.the_why}
+                    </p>
+                  </section>
+
+                  <RetroWindow title="ABSTRACT.txt" variant="terminal">
+                    <div className="space-y-3">
+                      <p className="font-mono text-[8px] text-mouse-gray">AI-Generated Abstract</p>
+                      <p className="font-body text-[13px] leading-[1.8] text-[rgba(245,237,211,0.85)]">
+                        {generateAbstract(paper)}
+                      </p>
                     </div>
                   </RetroWindow>
-                </div>
-              </div>
 
-              <div className="border-t border-pixel-border px-5 py-4">
-                <div className="flex flex-col gap-2">
+                  <div className="mt-5">
+                    <RetroWindow title="SESSION_LINKS.dat">
+                      <div className="space-y-3 font-body text-[13px] leading-[1.7] text-[rgba(245,237,211,0.85)]">
+                        {linkedGap && <p>Addresses Gap #{linkedGap.id}: {truncateText(linkedGap.gap, 110)}</p>}
+                        {linkedDecay && <p>Relates to decay: {truncateText(linkedDecay.claim, 110)}</p>}
+                        {linkedClaim && <p>Supports claim: {truncateText(linkedClaim.claim, 110)}</p>}
+                        {!linkedGap && !linkedDecay && !linkedClaim && (
+                          <p className="text-mouse-gray">No session links available yet.</p>
+                        )}
+                      </div>
+                    </RetroWindow>
+                  </div>
+                </>
+              )}
+
+              {vaultTab === "document" && docData && (
+                <div className="space-y-6">
+                  {/* DOCUMENT HEADER */}
+                  <div className="space-y-3 border-b border-pixel-border/40 pb-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="border px-2 py-1 font-pixel text-[8px]" style={categoryStyles[paper.category]}>
+                        {paper.category}
+                      </span>
+                    </div>
+                    <h2 className="font-body text-[16px] font-bold text-cream-terminal leading-tight">{paper.paper_title}</h2>
+                    <p className="font-mono text-[11px] text-mouse-gray">
+                      {paper.authors} · {paper.year}
+                    </p>
+                    <div className="mt-4 border border-sakura-alert/40 bg-sakura-alert/5 px-3 py-2 font-pixel text-[7px] text-sakura-alert leading-relaxed">
+                      ⚠ AI-RECONSTRUCTED — Not the original paper. Use SEARCH ON ARXIV for the real document.
+                    </div>
+                  </div>
+
+                  {/* DOCUMENT BODY */}
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-pixel text-[8px] text-electric-accent mb-2 mt-4">ABSTRACT</h3>
+                      <div className="font-body text-[13px] leading-[1.9] text-[rgba(245,237,211,0.8)] space-y-2">
+                        {docData.abstract.map((p, i) => <p key={i}>{p}</p>)}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-pixel-border/40 pt-5">
+                      <h3 className="font-pixel text-[8px] text-electric-accent mb-2 mt-4">1. INTRODUCTION</h3>
+                      <p className="font-body text-[13px] leading-[1.9] text-[rgba(245,237,211,0.8)]">
+                        {docData.introduction}
+                      </p>
+                    </div>
+
+                    <div className="border-t border-pixel-border/40 pt-5">
+                      <h3 className="font-pixel text-[8px] text-electric-accent mb-2 mt-4">2. METHODOLOGY</h3>
+                      <p className="font-body text-[13px] leading-[1.9] text-[rgba(245,237,211,0.8)]">
+                        {docData.methodology}
+                      </p>
+                    </div>
+
+                    <div className="border-t border-pixel-border/40 pt-5">
+                      <h3 className="font-pixel text-[8px] text-electric-accent mb-2 mt-4">3. KEY FINDINGS</h3>
+                      <div className="font-body text-[13px] leading-[1.9] text-[rgba(245,237,211,0.8)] space-y-3">
+                        {docData.findings.map((f, i) => (
+                          <div key={i} className="flex gap-3">
+                            <span className="font-mono text-electric-accent">[{i + 1}]</span>
+                            <span>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-pixel-border/40 pt-5">
+                      <h3 className="font-pixel text-[8px] text-electric-accent mb-2 mt-4">4. CONCLUSION</h3>
+                      <p className="font-body text-[13px] leading-[1.9] text-[rgba(245,237,211,0.8)]">
+                        {docData.conclusion}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BOTTOM ACTION BAR */}
+            <div className="border-t border-pixel-border px-5 py-4 shrink-0">
+              <div className="flex flex-col gap-2">
+                {vaultTab === "overview" && (
                   <button
                     onClick={() => onResearchPaper(paper)}
                     className="border-2 border-black bg-electric-accent px-4 py-3 font-pixel text-[9px] text-black shadow-[3px_3px_0_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0_#000]"
                   >
                     ▶ RESEARCH THIS PAPER
                   </button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <a
-                      href={`https://arxiv.org/search/?query=${encodeURIComponent(paper.paper_title)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="border border-mouse-gray px-3 py-2 text-center font-pixel text-[8px] text-cream-terminal hover:bg-white/5"
-                    >
-                      ◈ SEARCH ON ARXIV
-                    </a>
-                    <a
-                      href={`https://scholar.google.com/scholar?q=${encodeURIComponent(paper.paper_title)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="border border-mouse-gray px-3 py-2 text-center font-pixel text-[8px] text-cream-terminal hover:bg-white/5"
-                    >
-                      ◈ SEARCH ON SCHOLAR
-                    </a>
-                  </div>
+                )}
+                
+                {vaultTab === "document" && (
+                  <button
+                    onClick={downloadAbstract}
+                    className="border border-mouse-gray px-4 py-3 font-pixel text-[9px] text-cream-terminal transition-all hover:bg-white/5"
+                  >
+                    ⬇ DOWNLOAD ABSTRACT (.txt)
+                  </button>
+                )}
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <a
+                    href={`https://arxiv.org/search/?query=${encodeURIComponent(paper.paper_title)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="border border-mouse-gray px-3 py-2 text-center font-pixel text-[8px] text-cream-terminal hover:bg-white/5"
+                  >
+                    ◈ SEARCH ON ARXIV
+                  </a>
+                  <a
+                    href={`https://scholar.google.com/scholar?q=${encodeURIComponent(paper.paper_title)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="border border-mouse-gray px-3 py-2 text-center font-pixel text-[8px] text-cream-terminal hover:bg-white/5"
+                  >
+                    ◈ SEARCH ON SCHOLAR
+                  </a>
                 </div>
               </div>
             </div>
@@ -537,6 +863,37 @@ function PaperSidebar({
       )}
     </AnimatePresence>
   );
+}
+
+function generateFullDocumentSections(
+  paper: ResearchResponse["frontier_cards"][number],
+  researchData: ResearchResponse
+) {
+  const abstract = [
+    `${paper.paper_title} represents a critical inquiry into ${paper.the_why.toLowerCase()}.`,
+    "By re-examining the foundational assumptions of the field, the authors present a structured approach to mitigating long-standing bottlenecks.",
+    "This reconstructed document synthesizes the core themes of the manuscript for immediate integration into the current research session."
+  ];
+
+  const topic = researchData.session.topic || "the current domain";
+  const introduction = `The investigation of ${topic} has increasingly required novel paradigms to address structural limitations. In this context, the present work introduces a highly relevant perspective, bridging theoretical gaps and offering a robust framework for subsequent analysis.`;
+
+  let methodology = "Methodological details reconstructed from metadata.";
+  if (paper.category === "FOUNDATION") methodology = "The study employs a systematic literature review and establishes a foundational theoretical framework to unify disparate observations across the field.";
+  else if (paper.category === "FRONTIER") methodology = "The authors utilize a novel experimental design augmented by comprehensive ablation studies to isolate the primary causal mechanisms.";
+  else if (paper.category === "WILDCARD") methodology = "This work applies a cross-disciplinary transfer methodology, adapting techniques from adjacent domains to solve localized constraints.";
+  else if (paper.category === "HARDWARE_BRIDGE") methodology = "The investigation relies on rigorous systems-level benchmarking methodology, ensuring empirical validation across varied hardware constraints.";
+
+  const claims = researchData.dashboard.key_claims || [];
+  const findings = claims.slice(0, 3).map(c => c.claim);
+  if (findings.length === 0) {
+    findings.push("Initial empirical results strongly correlate with the hypothesized framework.");
+    findings.push("Identified key constraints that limit traditional scaling approaches.");
+  }
+
+  const conclusion = `In summary, the findings underscore the necessity of adapting ${paper.the_why.toLowerCase()}. Future work will likely extend these principles to broader operational contexts, cementing this paper's utility within the overarching research session.`;
+
+  return { abstract, introduction, methodology, findings, conclusion };
 }
 
 function generateAbstract(paper: ResearchResponse["frontier_cards"][number]) {

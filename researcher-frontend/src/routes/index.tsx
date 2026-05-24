@@ -1,13 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion, useScroll, useTransform, useMotionValue, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Sparkles } from "@/components/Sparkles";
 import { Typewriter } from "@/components/Typewriter";
 import { RetroWindow } from "@/components/RetroWindow";
 import { AgentStateTerminal } from "@/components/AgentStateTerminal";
 import { PixelProgressBar } from "@/components/PixelProgressBar";
-import { PixelLandscape } from "@/components/PixelLandscape";
 import type { AgentStreamEntry } from "@/lib/types";
 
 export const Route = createFileRoute("/")({
@@ -22,14 +21,292 @@ const DEMO_STREAM: AgentStreamEntry[] = [
   { agent: "ADVOCATE", color: "cream", lines: ["Synthesizing dashboard."] },
 ];
 
+function PixelAtmosphereCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cursorRef = useRef({ x: -1000, y: -1000 });
+  const scrollRef = useRef(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Use devicePixelRatio for crisp glass rendering
+    const dpr = window.devicePixelRatio || 1;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      cursorRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleScroll = () => {
+      scrollRef.current = window.scrollY;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("scroll", handleScroll);
+
+    scrollRef.current = window.scrollY;
+
+    const CUBE_SIZE = 72;
+    const GAP = 8;
+    const TOTAL_SIZE = CUBE_SIZE + GAP;
+
+    let cols = 0;
+    let rows = 0;
+    let cells: any[] = [];
+
+    const DEEP_NAVY = [13, 15, 26];
+    const ELECTRIC_BLOOM = [60, 45, 140];
+    const TEAL_DIFFUSE = [20, 55, 75];
+    const MAGENTA_HAZE = [80, 25, 60];
+    const LIME_GHOST = [30, 60, 25];
+    const INDIGO_MID = [35, 30, 80];
+
+    const getInfluence = (nx: number, ny: number, cx: number, cy: number, maxDist: number) => {
+      const dist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
+      return Math.max(0, 1 - dist / maxDist);
+    };
+
+    const initCells = () => {
+      // Setup high-res canvas
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
+
+      // Add extra cells to handle edges during scroll/shift
+      cols = Math.ceil(window.innerWidth / TOTAL_SIZE) + 1;
+      rows = Math.ceil(window.innerHeight / TOTAL_SIZE) + 1;
+
+      cells = [];
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const nx = x / cols;
+          const ny = y / rows;
+
+          let r = DEEP_NAVY[0];
+          let g = DEEP_NAVY[1];
+          let b = DEEP_NAVY[2];
+
+          const inf1 = getInfluence(nx, ny, 0, 0, 0.7);
+          r += (ELECTRIC_BLOOM[0] - DEEP_NAVY[0]) * inf1;
+          g += (ELECTRIC_BLOOM[1] - DEEP_NAVY[1]) * inf1;
+          b += (ELECTRIC_BLOOM[2] - DEEP_NAVY[2]) * inf1;
+
+          const inf2 = getInfluence(nx, ny, 0, 1, 0.6);
+          r += (MAGENTA_HAZE[0] - DEEP_NAVY[0]) * inf2;
+          g += (MAGENTA_HAZE[1] - DEEP_NAVY[1]) * inf2;
+          b += (MAGENTA_HAZE[2] - DEEP_NAVY[2]) * inf2;
+
+          const inf3 = getInfluence(nx, ny, 0.5, 0.5, 0.5);
+          r += (INDIGO_MID[0] - DEEP_NAVY[0]) * inf3;
+          g += (INDIGO_MID[1] - DEEP_NAVY[1]) * inf3;
+          b += (INDIGO_MID[2] - DEEP_NAVY[2]) * inf3;
+
+          const inf4 = getInfluence(nx, ny, 1, 0, 0.6);
+          r += (TEAL_DIFFUSE[0] - DEEP_NAVY[0]) * inf4;
+          g += (TEAL_DIFFUSE[1] - DEEP_NAVY[1]) * inf4;
+          b += (TEAL_DIFFUSE[2] - DEEP_NAVY[2]) * inf4;
+
+          const inf5 = getInfluence(nx, ny, 1, 1, 0.6);
+          r += (LIME_GHOST[0] - DEEP_NAVY[0]) * inf5;
+          g += (LIME_GHOST[1] - DEEP_NAVY[1]) * inf5;
+          b += (LIME_GHOST[2] - DEEP_NAVY[2]) * inf5;
+
+          r += (ELECTRIC_BLOOM[0] - DEEP_NAVY[0]) * 0.05;
+          g += (ELECTRIC_BLOOM[1] - DEEP_NAVY[1]) * 0.05;
+          b += (ELECTRIC_BLOOM[2] - DEEP_NAVY[2]) * 0.05;
+
+          // Generate organic structural density for compositional depth
+          const lowFreq = Math.sin(nx * Math.PI * 3) * Math.cos(ny * Math.PI * 3);
+          const highFreq = Math.sin(nx * Math.PI * 8 + ny * Math.PI * 4) * 0.5;
+          const density = Math.max(0, Math.min(1, (lowFreq + highFreq) * 0.5 + 0.5));
+
+          cells.push({
+            x: x * TOTAL_SIZE,
+            y: y * TOTAL_SIZE,
+            cx: x * TOTAL_SIZE + CUBE_SIZE / 2,
+            cy: y * TOTAL_SIZE + CUBE_SIZE / 2,
+            targetR: Math.min(255, Math.max(0, r)),
+            targetG: Math.min(255, Math.max(0, g)),
+            targetB: Math.min(255, Math.max(0, b)),
+            density,
+            energy: 0,
+            offsetX: 0,
+            offsetY: 0,
+            baseOffset: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+    };
+
+    initCells();
+
+    const handleResize = () => {
+      initCells();
+    };
+    window.addEventListener("resize", handleResize);
+
+    let animationFrameId: number;
+
+    const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    };
+
+    const render = () => {
+      // Clear with solid navy
+      ctx.fillStyle = `rgb(${DEEP_NAVY[0]}, ${DEEP_NAVY[1]}, ${DEEP_NAVY[2]})`;
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+      const cx = cursorRef.current.x;
+      const cy = cursorRef.current.y;
+      const scrollY = scrollRef.current;
+      const time = Date.now() * 0.0005;
+
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+
+        // 1. Calculate Cursor Distance
+        const dist = Math.hypot(cell.cx - cx, cell.cy - cy);
+        const influenceRadius = 450; // Larger, softer optical field
+
+        // 2. Optical Luminous Energy (Trapped light)
+        if (dist < influenceRadius) {
+          const power = Math.pow((influenceRadius - dist) / influenceRadius, 2);
+          // Dense clusters trap more light and bloom brighter (interconnected bleed)
+          const densityMultiplier = 0.04 + cell.density * 0.14;
+          cell.energy += power * densityMultiplier;
+        }
+
+        // Glass memory - slow fade of trapped light
+        cell.energy += (0 - cell.energy) * 0.03;
+
+        // 3. Subtle anchored parallax (NO displacement/pushing)
+        const ambientY = Math.sin(time + cell.baseOffset) * 1.5 - (scrollY * 0.05);
+        const ambientX = Math.cos(time + cell.baseOffset) * 1.5;
+
+        const drawX = cell.x + ambientX;
+        const drawY = cell.y + ambientY;
+
+        // Calculate Glass Color
+        // Density dictates the dim base state (dense areas hold more base color)
+        const dimR = cell.targetR * (0.03 + cell.density * 0.15);
+        const dimG = cell.targetG * (0.03 + cell.density * 0.15);
+        const dimB = cell.targetB * (0.03 + cell.density * 0.15);
+
+        const glow = Math.min(cell.energy * 2.2, 3.5);
+
+        // Spectral shift (injects white/cyan into the center of the bloom)
+        const whiteMix = Math.max(0, glow - 1.5) * 35;
+
+        const finalR = Math.min(255, dimR + (cell.targetR - dimR) * glow + whiteMix);
+        const finalG = Math.min(255, dimG + (cell.targetG - dimG) * glow + whiteMix);
+        const finalB = Math.min(255, dimB + (cell.targetB - dimB) * glow + whiteMix);
+
+        // 4. Directional Refraction Gradients
+        // Angle points from cursor TO cell
+        let gradX1, gradY1, gradX2, gradY2;
+
+        if (dist < influenceRadius * 2) {
+          // Light source is the cursor
+          const angleToCursor = Math.atan2(cy - cell.cy, cx - cell.cx);
+          const nx = Math.cos(angleToCursor);
+          const ny = Math.sin(angleToCursor);
+
+          const centerX = drawX + CUBE_SIZE / 2;
+          const centerY = drawY + CUBE_SIZE / 2;
+
+          // Gradient starts at the edge facing the cursor and ends at the opposite edge
+          gradX1 = centerX + nx * (CUBE_SIZE / 2);
+          gradY1 = centerY + ny * (CUBE_SIZE / 2);
+          gradX2 = centerX - nx * (CUBE_SIZE / 2);
+          gradY2 = centerY - ny * (CUBE_SIZE / 2);
+        } else {
+          // Default soft top-down ambient light
+          gradX1 = drawX;
+          gradY1 = drawY;
+          gradX2 = drawX;
+          gradY2 = drawY + CUBE_SIZE;
+        }
+
+        // Draw translucent glass cube
+        drawRoundRect(drawX, drawY, CUBE_SIZE, CUBE_SIZE, 20); // Softer, rounder feel
+
+        const fillGradient = ctx.createLinearGradient(gradX1, gradY1, gradX2, gradY2);
+
+        // Density drives translucency (ghost cubes vs thick cubes)
+        const baseAlpha = 0.01 + cell.density * 0.08;
+        const glowAlpha = 0.1 + cell.density * 0.25;
+
+        // Face nearest to light gets more opacity/color
+        fillGradient.addColorStop(0, `rgba(${finalR}, ${finalG}, ${finalB}, ${baseAlpha + glow * glowAlpha})`);
+        fillGradient.addColorStop(1, `rgba(${finalR}, ${finalG}, ${finalB}, ${baseAlpha * 0.2 + glow * glowAlpha * 0.2})`);
+
+        ctx.fillStyle = fillGradient;
+        ctx.fill();
+
+        // 5. Edge Illumination (Directional Rim Light)
+        const strokeGradient = ctx.createLinearGradient(gradX1, gradY1, gradX2, gradY2);
+
+        const edgeBase = 0.01 + cell.density * 0.03;
+        const edgeGlowMultiplier = 0.08 + cell.density * 0.15;
+
+        strokeGradient.addColorStop(0, `rgba(255, 255, 255, ${edgeBase + glow * edgeGlowMultiplier})`); // Softer catch light
+        strokeGradient.addColorStop(1, `rgba(255, 255, 255, ${edgeBase * 0.2 + glow * edgeGlowMultiplier * 0.2})`); // Shadow side
+
+        ctx.strokeStyle = strokeGradient;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 0,
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
 function LandingPage() {
   return (
-    <div className="min-h-screen bg-research-navy text-mono-white">
+    <div className="min-h-screen bg-research-navy text-mono-white crt-overlay">
+      <PixelAtmosphereCanvas />
       <Navigation />
       <Hero />
       <FeatureStrip />
       <HowItWorks />
-      <Differentiators />
+      <ObservatoryScrollStory />
       <StatsBar />
       <Footer />
     </div>
@@ -39,8 +316,8 @@ function LandingPage() {
 function Hero() {
   return (
     <section
-      className="graph-paper relative min-h-[calc(100vh-3rem)] overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #0D0F1A 0%, #1A1D35 100%)" }}
+      className="homepage-section graph-paper relative min-h-[calc(100vh-3rem)] overflow-hidden"
+      style={{ background: "linear-gradient(180deg, rgba(123,111,255,0.05), rgba(13,15,26,0.96))" }}
     >
       <Sparkles count={28} />
       <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 py-20 lg:grid-cols-5 lg:px-12">
@@ -48,6 +325,27 @@ function Hero() {
         <div className="lg:col-span-3">
           <p className="font-pixel text-[11px] text-cream-terminal">◆ THE RESEARCHER</p>
           <div className="mt-16 space-y-2">
+            <svg width="64" height="64" viewBox="0 0 32 32" className="pulse-glow mb-6 block" xmlns="http://www.w3.org/2000/svg">
+              {/* Central eye */}
+              <rect x="14" y="14" width="4" height="4" fill="#0D0F1A" />
+              {/* Iris */}
+              <rect x="15" y="15" width="2" height="2" fill="#D4F87A" />
+              {/* 8 Rays */}
+              <rect x="15" y="2" width="2" height="8" fill="#7B6FFF" />
+              <rect x="15" y="22" width="2" height="8" fill="#7B6FFF" />
+              <rect x="2" y="15" width="8" height="2" fill="#7B6FFF" />
+              <rect x="22" y="15" width="8" height="2" fill="#7B6FFF" />
+              {/* Diagonals using 2x2 dots */}
+              <rect x="6" y="6" width="2" height="2" fill="#7B6FFF" />
+              <rect x="24" y="6" width="2" height="2" fill="#7B6FFF" />
+              <rect x="6" y="24" width="2" height="2" fill="#7B6FFF" />
+              <rect x="24" y="24" width="2" height="2" fill="#7B6FFF" />
+              {/* Surrounding ring */}
+              <rect x="12" y="10" width="8" height="2" fill="#7B6FFF" />
+              <rect x="12" y="20" width="8" height="2" fill="#7B6FFF" />
+              <rect x="10" y="12" width="2" height="8" fill="#7B6FFF" />
+              <rect x="20" y="12" width="2" height="8" fill="#7B6FFF" />
+            </svg>
             <h1 className="font-pixel text-[clamp(28px,5vw,56px)] leading-[1.1]">
               <span className="block text-cream-terminal">
                 <Typewriter text="INTELLIGENCE" speed={45} />
@@ -96,7 +394,7 @@ function Monitor() {
       <p className="mb-2 font-pixel text-[8px] text-mouse-gray">THE RESEARCHER v1.0</p>
       <div
         className="rounded-[8px] border-[3px] border-[#4A3A6A] bg-[#2A2040] p-3"
-        style={{ boxShadow: "0 0 40px rgba(123,111,255,0.3), 0 20px 0 #1A1030" }}
+        style={{ boxShadow: "0 0 40px rgba(123,111,255,0.10), 0 20px 0 #1A1030" }}
       >
         <div className="aspect-[4/3] overflow-hidden bg-black">
           <AgentStateTerminal stream={DEMO_STREAM} isStreaming={true} loop height={320} speedMs={26} />
@@ -150,7 +448,7 @@ function FeatureStrip() {
     },
   ];
   return (
-    <section id="features" className="border-y border-pixel-border bg-research-navy px-6 py-16 lg:px-12">
+    <section id="features" className="homepage-section border-y border-pixel-border bg-research-navy px-6 py-16 lg:px-12">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-3">
         {features.map((f, i) => (
           <motion.div
@@ -161,11 +459,13 @@ function FeatureStrip() {
             transition={{ duration: 0.4, delay: i * 0.1 }}
             whileHover={{ y: -4 }}
           >
-            <RetroWindow title={f.title}>
-              <div className="font-pixel text-3xl text-electric-accent">{f.icon}</div>
-              <h3 className="mt-4 font-pixel text-[10px] text-cream-terminal">{f.heading}</h3>
-              <p className="mt-3 font-body text-[13px] leading-[1.6] text-mono-white/80">{f.body}</p>
-            </RetroWindow>
+            <div className="atmosphere-glass">
+              <RetroWindow title={f.title}>
+                <div className="font-pixel text-3xl text-electric-accent">{f.icon}</div>
+                <h3 className="mt-4 font-pixel text-[10px] text-cream-terminal">{f.heading}</h3>
+                <p className="mt-3 font-body text-[13px] leading-[1.6] text-mono-white/80">{f.body}</p>
+              </RetroWindow>
+            </div>
           </motion.div>
         ))}
       </div>
@@ -181,7 +481,7 @@ function HowItWorks() {
     { n: "04", title: "Get your dashboard", body: "Summary, claims, gaps, analogies, frontier papers, export." },
   ];
   return (
-    <section className="relative overflow-hidden bg-mono-white px-6 py-20 text-research-navy graph-paper-dark lg:px-12">
+    <section className="homepage-section pixel-grid-overlay relative overflow-hidden bg-mono-white px-6 py-20 text-research-navy graph-paper-dark lg:px-12">
       <h2 className="text-center font-pixel text-[14px] tracking-widest text-research-navy">HOW IT WORKS</h2>
       <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
         {steps.map((s) => (
@@ -196,38 +496,265 @@ function HowItWorks() {
   );
 }
 
-function Differentiators() {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], [40, -80]);
+function ObservatoryScrollStory() {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const items = [
-    { icon: "◆", title: "DEPTH AT ANY LEVEL", body: "The same topic, rendered for a curious teen or a tenured professor." },
-    { icon: "◇", title: "EPISTEMIC HONESTY", body: "Stale claims flagged. Confidence intervals shown. No hallucinated citations." },
-    { icon: "◈", title: "KNOWLEDGE MAPPING", body: "Cross-domain analogies and prerequisite chains, not just text." },
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
+
+  const [displayStage, setDisplayStage] = useState(0);
+
+  useEffect(() => {
+    return scrollYProgress.onChange((v) => {
+      if (v >= 1) {
+        setDisplayStage(3);
+      } else {
+        setDisplayStage(Math.floor(v / 0.25));
+      }
+    });
+  }, [scrollYProgress]);
+
+  const STAGES = [
+    {
+      label: "01 — THE SIGNAL",
+      heading: "Start from curiosity.",
+      body: "Ask anything — from science to philosophy to everyday questions. The observatory responds to any signal.",
+      gif: "/assets/chemicalglasstube_transparent.gif",
+      glowColor: "rgba(255, 60, 40, 0.4)",
+      metadata: ["OBSERVATORY CORE", "LATENT CURIOSITY", "PROTOCOL: ALPHA-1"]
+    },
+    {
+      label: "02 — THE MACHINE",
+      heading: "Research without friction.",
+      body: "Multiple AI agents organize, synthesize, and explain complex topics with depth and clarity.",
+      gif: "/assets/computer_gif.gif",
+      glowColor: "rgba(123, 111, 255, 0.35)",
+      metadata: ["OBSERVATORY CORE", "AGENTIC SYNTHESIS", "PROTOCOL: BETA-4"]
+    },
+    {
+      label: "03 — THE ARCANE REASONING",
+      heading: "See the reasoning.",
+      body: "Every answer is connected to claims, mechanisms, and source-backed evidence. Nothing is a black box.",
+      gif: "/assets/minecraft_enchantmenttableandsword_transparent.gif",
+      glowColor: "rgba(168, 180, 255, 0.35)",
+      metadata: ["OBSERVATORY CORE", "EPISTEMIC GRAPH", "PROTOCOL: DELTA-7"]
+    },
+    {
+      label: "04 — THE AWAKENING",
+      heading: "Open the knowledge layer.",
+      body: "Access references, reconstructed papers, and grounding literature directly. The observatory is fully awake.",
+      gif: "/assets/eyevideo_gif.gif",
+      glowColor: "rgba(212, 248, 122, 0.35)",
+      metadata: ["OBSERVATORY CORE", "LATENT REASONING", "PROTOCOL: OMEGA-9"]
+    }
   ];
 
+  const currentStageData = STAGES[displayStage];
+
   return (
-    <section ref={ref} className="relative overflow-hidden bg-research-navy px-6 py-24 lg:px-12">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 md:grid-cols-3">
-        {items.map((it) => (
-          <div key={it.title} className="border border-pixel-border bg-session-dark p-6">
-            <p className="font-pixel text-2xl text-electric-accent">{it.icon}</p>
-            <h3 className="mt-3 font-pixel text-[10px] text-cream-terminal">{it.title}</h3>
-            <p className="mt-3 font-body text-[14px] leading-[1.7] text-mono-white/80">{it.body}</p>
-          </div>
-        ))}
+    <>
+      <div className="relative z-10 border-t border-b border-pixel-border/30 bg-research-navy py-6 text-center">
+        <p className="font-pixel text-[8px] text-mouse-gray tracking-[0.3em]">
+          {"{ THE OBSERVATORY INTELLIGENCE SYSTEM }"}
+        </p>
       </div>
-      <motion.div style={{ y }} className="mt-16">
-        <PixelLandscape className="h-[300px] w-full" />
-      </motion.div>
-    </section>
+
+      <section ref={containerRef} className="homepage-section relative h-[400vh] bg-transparent">
+        <div
+          className="sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden"
+          style={{
+            background: "rgba(13, 15, 26, 0.25)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)"
+          }}
+        >
+          {/* Subtle background tint interaction matching the active artifact color */}
+          <div
+            className="absolute inset-0 z-0 pointer-events-none transition-colors duration-1000 ease-out"
+            style={{
+              background: `radial-gradient(circle at 50% 50%, ${currentStageData.glowColor} 0%, transparent 50%)`,
+              opacity: 0.4,
+              mixBlendMode: "screen"
+            }}
+          ></div>
+
+          {/* Edge fades */}
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{
+              maskImage: "linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 15%, black 85%, transparent 100%)"
+            }}
+          ></div>
+
+          {/* MAIN CENTRALISED LAYOUT */}
+          <div className="relative z-20 w-full max-w-[1500px] h-full mx-auto flex flex-col justify-between py-12 px-6 md:px-12 pointer-events-none">
+
+            {/* MASSIVE BACKGROUND ARTIFACT */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+
+              {/* Faint Glass Pedestal */}
+              <div className="absolute top-[65%] left-1/2 -translate-x-1/2 w-[280px] md:w-[450px] h-[60px] rounded-[100%] border-t border-white/5 bg-gradient-to-t from-white/[0.03] to-transparent blur-[1px]"></div>
+
+              <div className="relative w-[280px] h-[280px] md:w-[500px] md:h-[500px]">
+
+                <AnimatePresence>
+                  <motion.div
+                    key={displayStage}
+                    initial={{ opacity: 0, scale: 0.95, filter: 'blur(24px)' }}
+                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, scale: 1.05, filter: 'blur(24px)' }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    {/* Radial Soft Glow Layer Behind Artifact */}
+                    <div
+                      className="absolute inset-0 rounded-full blur-[60px] opacity-60 mix-blend-screen"
+                      style={{ background: `radial-gradient(circle, ${currentStageData.glowColor} 0%, transparent 70%)` }}
+                    />
+
+                    {/* Drifting Floating Pixel Particles */}
+                    <div className="absolute inset-0">
+                      {[...Array(6)].map((_, j) => (
+                        <motion.div
+                          key={`p-${displayStage}-${j}`}
+                          className="absolute w-1 h-1 bg-white mix-blend-overlay"
+                          style={{
+                            left: `${20 + Math.random() * 60}%`,
+                            top: `${20 + Math.random() * 60}%`,
+                          }}
+                          animate={{
+                            y: [0, -20 - Math.random() * 30],
+                            opacity: [0, 0.4, 0],
+                            scale: [0.5, 1, 0.5]
+                          }}
+                          transition={{
+                            duration: 4 + Math.random() * 4,
+                            repeat: Infinity,
+                            delay: Math.random() * 4,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* The Premium Pixel Art GIF */}
+                    <motion.img
+                      src={currentStageData.gif}
+                      alt={currentStageData.label}
+                      className="relative z-10 w-full h-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                      style={{ imageRendering: "pixelated" }}
+                      animate={{ y: [-4, 4, -4] }}
+                      transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+
+              </div>
+            </div>
+
+            {/* FOREGROUND CONTENT ORBITING THE ARTIFACT */}
+
+            {/* TOP MOBILE BREADCRUMB */}
+            <div className="w-full flex justify-center md:hidden relative z-30 mb-8">
+              <p className="font-pixel text-[10px] text-electric-accent tracking-[0.25em]">{currentStageData.label}</p>
+            </div>
+
+            {/* MIDDLE DESKTOP CONTENT (Left + Right flanking the artifact) */}
+            <div className="hidden md:flex flex-1 w-full justify-between items-center relative z-30">
+
+              {/* LEFT: ATMOSPHERIC METADATA */}
+              <div className="w-[260px]">
+                <p className="font-pixel text-[10px] text-electric-accent tracking-[0.25em] mb-4">{currentStageData.label}</p>
+                <div className="w-12 h-[1px] bg-electric-accent/40 mb-4"></div>
+                <p className="font-pixel text-[8px] text-mouse-gray/60 tracking-widest leading-[2.5]">
+                  {currentStageData.metadata.map((m, idx) => (
+                    <span key={idx}>{m}<br /></span>
+                  ))}
+                </p>
+              </div>
+
+              {/* RIGHT: MAIN HEADING & BODY */}
+              <div className="w-[420px] pointer-events-auto">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={displayStage}
+                    initial={{ opacity: 0, x: 20, filter: 'blur(8px)' }}
+                    animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, x: -20, filter: 'blur(8px)' }}
+                    transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  >
+                    <h3 className="font-pixel text-[34px] lg:text-[42px] text-cream-terminal leading-[1.1] mb-6 drop-shadow-[0_4px_20px_rgba(245,237,211,0.15)]">
+                      {currentStageData.heading}
+                    </h3>
+                    <p className="font-body text-[16px] lg:text-[18px] text-cream-terminal/70 leading-[1.9]">
+                      {currentStageData.body}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+            </div>
+
+            {/* BOTTOM PROGRESS SYSTEM & MOBILE TEXT */}
+            <div className="w-full flex flex-col md:flex-row items-center md:items-end justify-between relative z-30 mt-auto md:mt-0 pb-6">
+
+              {/* MOBILE TEXT */}
+              <div className="w-full md:hidden text-center mb-12 pointer-events-auto">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={displayStage}
+                    initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <h3 className="font-pixel text-[24px] text-cream-terminal leading-tight mb-4">
+                      {currentStageData.heading}
+                    </h3>
+                    <p className="font-body text-[14px] text-cream-terminal/70 leading-[1.7] max-w-[320px] mx-auto">
+                      {currentStageData.body}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* PROGRESS DOTS */}
+              <div className="flex gap-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-[2px] transition-all duration-700 ease-[0.25,0.46,0.45,0.94] ${displayStage === i
+                        ? 'w-10 bg-electric-accent shadow-[0_0_12px_#7B6FFF]'
+                        : 'w-3 bg-pixel-border'
+                      }`}
+                  />
+                ))}
+              </div>
+
+              {/* SCROLL HINT (Desktop) */}
+              <div className="hidden md:block">
+                <p
+                  className="font-pixel text-[8px] text-mouse-gray/40 tracking-widest transition-opacity duration-1000"
+                  style={{ opacity: displayStage === 0 ? 1 : 0 }}
+                >
+                  {"{ SCROLL DOWN }"}
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 
 function StatsBar() {
   return (
-    <section className="border-t border-pixel-border bg-session-dark px-6 py-16 lg:px-12">
+    <section className="homepage-section border-t border-pixel-border bg-session-dark px-6 py-16 lg:px-12">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-4">
         <Stat label="SESSIONS" value="10,000+" />
         <div>
@@ -259,7 +786,7 @@ function Stat({ label, value, color = "cream" }: { label: string; value: string;
 
 function Footer() {
   return (
-    <footer className="border-t border-pixel-border bg-research-navy px-6 py-10 text-center lg:px-12">
+    <footer className="homepage-section border-t border-pixel-border bg-research-navy px-6 py-10 text-center lg:px-12">
       <p className="font-pixel text-[8px] text-mouse-gray">
         ◆ THE RESEARCHER · A COGNITIVE ARCHITECTURE FOR DEEP WORK
       </p>

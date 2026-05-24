@@ -139,6 +139,10 @@ RETURN THIS EXACT JSON STRUCTURE:
     "gap_count": 3,
     "frontier_cards": 8
   },
+  "referenced_sources": [
+    { "id": "src_001", "title": "Full paper title grounding a key claim", "authors": "Smith, J., Lee, K., et al.", "year": 2022, "venue": "Nature Machine Intelligence", "citations": 340, "abstract": "A 150-200 word abstract summarizing the paper's contribution, methodology, and key findings. Must feel like a real academic abstract.", "relevance_note": "One sentence explaining why the agents used this paper to support a specific claim.", "category": "FOUNDATION", "doi_hint": "10.1038/s42256-022-00001-1", "open_access": true },
+    { "id": "src_002", "title": "Another grounding paper title", "authors": "Chen, W., Patel, R.", "year": 2023, "venue": "ICML 2023", "citations": 128, "abstract": "150-200 word abstract...", "relevance_note": "Why agents used this.", "category": "EMPIRICAL", "doi_hint": "10.xxxx/xxxxx", "open_access": false }
+  ],
   "special_response": null
 }
 
@@ -152,6 +156,7 @@ RULES:
 - research_gaps: 3-5 items, each must name specific subject + method + benchmark. NEVER write "more research is needed"
 - cross_domain_analogy structural_isomorphism: MUST be mechanistic/mathematical, NOT a surface metaphor
 - session_stats.frontier_cards must always equal 8
+- referenced_sources: EXACTLY 6-10 items. Each must have all fields: id, title, authors, year, venue, citations, abstract (150-200 words), relevance_note (1 sentence), category (FOUNDATION|EMPIRICAL|METHODOLOGY|REVIEW|FRONTIER), doi_hint, open_access. These are the bibliography — they MUST correspond to claims in key_claims and core_mechanisms. They are NOT random suggestions.
 - NEVER say "As an AI" or break character
 - NEVER produce output that fails JSON.parse()
 - executive_summary.text: MINIMUM 150 words for Summary, 300 for Detailed, 500 for Deep Dive. Violating this minimum is a critical failure.
@@ -305,6 +310,22 @@ function sanitizeResponse(data) {
     if (data.session?.level < 4) data.dashboard.novel_hypothesis = null
     if (data.session_stats) data.session_stats.frontier_cards = 8
     if (data.special_response === undefined || data.special_response === 'null') data.special_response = null
+
+    // Sanitize referenced_sources
+    if (!Array.isArray(data.referenced_sources)) data.referenced_sources = []
+    data.referenced_sources = data.referenced_sources.map((src, i) => ({
+        id: src.id || `src_${String(i + 1).padStart(3, '0')}`,
+        title: src.title || 'Untitled Source',
+        authors: src.authors || 'Unknown',
+        year: typeof src.year === 'number' ? src.year : 2023,
+        venue: src.venue || 'Unknown Venue',
+        citations: typeof src.citations === 'number' ? src.citations : 0,
+        abstract: src.abstract || 'Abstract unavailable.',
+        relevance_note: src.relevance_note || 'Used as grounding literature.',
+        category: ['FOUNDATION', 'EMPIRICAL', 'METHODOLOGY', 'REVIEW', 'FRONTIER'].includes(src.category) ? src.category : 'FOUNDATION',
+        doi_hint: src.doi_hint || `10.${1000 + i}/unknown`,
+        open_access: typeof src.open_access === 'boolean' ? src.open_access : false,
+    }))
 
     return data
 }

@@ -11,6 +11,20 @@ export interface KeyClaim {
   confidence: number;
 }
 
+export interface ReferencedSource {
+  id: string;
+  title: string;
+  authors: string;
+  year: number;
+  venue: string;
+  citations: number;
+  abstract: string;
+  relevance_note: string;
+  category: 'FOUNDATION' | 'EMPIRICAL' | 'METHODOLOGY' | 'REVIEW' | 'FRONTIER';
+  doi_hint: string;
+  open_access: boolean;
+}
+
 export interface ResearchResponse {
   session: {
     topic: string;
@@ -64,6 +78,7 @@ export interface ResearchResponse {
     gap_count: number;
     frontier_cards: number;
   };
+  referenced_sources?: ReferencedSource[];
   special_response: SpecialResponse | null;
 }
 
