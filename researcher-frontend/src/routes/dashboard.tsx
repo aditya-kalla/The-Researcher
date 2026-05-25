@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
@@ -21,6 +21,12 @@ import type { ResearchResponse, ResearchSession, SpecialResponse } from "@/lib/t
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
   head: () => ({ meta: [{ title: "Dashboard — THE RESEARCHER" }] }),
+  beforeLoad: () => {
+    const isAuthenticated = useStore.getState().isAuthenticated;
+    if (!isAuthenticated) {
+      throw redirect({ to: '/auth' });
+    }
+  },
 });
 
 /* ─────────────────────────────────────────────────

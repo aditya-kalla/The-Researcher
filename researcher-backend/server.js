@@ -19,11 +19,12 @@ app.use(cors({
         'http://localhost:3000',
         'http://localhost:3001',
     ],
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 
 app.use(express.json({ limit: '10mb' }))
+
 
 // ─── SYSTEM INSTRUCTIONS ──────────────────────────────────────────────────────
 const SYSTEM_INSTRUCTIONS = `You are THE RESEARCHER — a production-grade Cognitive Research Architecture.
@@ -219,7 +220,7 @@ app.post('/api/research', upload.array('files', 5), async (req, res) => {
                 { role: 'user', content: userMessage },
             ],
             temperature: 0.7,
-            max_tokens: 8000,
+            max_tokens: 12000,
             response_format: { type: 'json_object' }, // forces valid JSON output
         })
 
@@ -261,6 +262,7 @@ app.post('/api/research', upload.array('files', 5), async (req, res) => {
         }
 
         parsedData = sanitizeResponse(parsedData)
+
 
         console.log(`[${new Date().toISOString()}] Done in ${Date.now() - startTime}ms`)
         res.json(parsedData)
@@ -330,6 +332,7 @@ function sanitizeResponse(data) {
     return data
 }
 
+
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', model: 'llama-3.3-70b-versatile (Groq)', timestamp: new Date().toISOString() })
@@ -346,3 +349,4 @@ app.listen(PORT, () => {
 ╚═══════════════════════════════════════════╝
   `)
 })
+

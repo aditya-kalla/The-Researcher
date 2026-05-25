@@ -23,7 +23,6 @@ function SettingsPage() {
     setPreferences,
     sessions,
     deleteAllSessions,
-    logout,
   } = useStore();
 
   const [level, setLevel] = useState<Level>(defaultLevel);
@@ -67,7 +66,7 @@ function SettingsPage() {
           </div>
           <button
             onClick={() => {
-              logout();
+              useStore.getState().clearUser();
               navigate({ to: "/" });
             }}
             className="mt-5 border-2 border-sakura-alert px-4 py-2 font-pixel text-[9px] text-sakura-alert hover:bg-sakura-alert/10"

@@ -132,7 +132,7 @@ export function AgentStateTerminal({
                     key={card.paper_id}
                     type="button"
                     title={card.paper_title}
-                    onClick={() => onPaperSelect(card)}
+                    onClick={() => onPaperSelect?.(card)}
                     className="inline-flex h-4 items-center justify-center border border-periwinkle-soft px-1 font-pixel text-[7px] text-periwinkle-soft hover:bg-periwinkle-soft/10"
                   >
                     ◈

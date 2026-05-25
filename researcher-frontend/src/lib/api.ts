@@ -1,4 +1,4 @@
-import type { ResearchResponse, SpecialResponse } from "./types";
+import type { ResearchResponse, SpecialResponse, ResearchSession } from "./types";
 
 export interface ResearchRequest {
   topic: string;
@@ -21,13 +21,17 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
  * Calls the AI research backend. If VITE_API_BASE_URL is not set we fall back
  * to a local mock so the whole UI is demoable end-to-end.
  */
+
 export async function callResearchAPI(req: ResearchRequest): Promise<ResearchResponse> {
   if (!import.meta.env.VITE_API_BASE_URL) {
     return mockResearch(req);
   }
+
   const res = await fetch(`${API_BASE}/research`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(req),
   });
   if (!res.ok) throw new Error(`API ${res.status}`);

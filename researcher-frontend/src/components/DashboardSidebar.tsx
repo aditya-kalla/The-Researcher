@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useStore } from "@/store/useStore";
 import type { ResearchSession } from "@/lib/types";
 
@@ -23,11 +24,27 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
     setCurrentSession,
     deleteAllSessions,
     user,
-    logout,
     uploadedSources,
     addUploadedSource,
     removeUploadedSource,
+    loadSessions,
+    sessionsLoading,
+    deleteSession,
+    setResearchData,
   } = useStore();
+  const navigate = useNavigate();
+
+  const handleClearAll = () => {
+    deleteAllSessions();
+  }
+
+  const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
+
+  const handleSessionClick = (session: ResearchSession) => {
+    if (session.id === currentSessionId) return;
+    setResearchData(session.researchData);
+    setCurrentSession(session.id);
+  }
   const [files, setFiles] = useState<UploadedFile[]>(
     uploadedSources.map((n) => ({ name: n, size: 0 }))
   );
@@ -82,7 +99,7 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
           <span className="font-pixel text-[8px] tracking-wider text-mouse-gray">SESSIONS</span>
           {sessions.length > 0 && (
             <button
-              onClick={deleteAllSessions}
+              onClick={handleClearAll}
               className="font-pixel text-[7px] text-sakura-alert hover:underline"
             >
               CLEAR ALL
@@ -93,7 +110,17 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
           <p className="px-3 font-mono text-[11px] text-mouse-gray">No sessions yet.</p>
         )}
         {sessions.map((s) => (
-          <SessionRow key={s.id} s={s} active={s.id === currentSessionId} onClick={() => setCurrentSession(s.id)} />
+          <SessionRow 
+            key={s.id} 
+            s={s} 
+            active={s.id === currentSessionId} 
+            isLoading={loadingSessionId === s.id}
+            onClick={() => handleSessionClick(s)} 
+            onDelete={(e) => {
+              e.stopPropagation();
+              deleteSession(s.id);
+            }}
+          />
         ))}
 
         <div className="px-3 pb-2 pt-6">
@@ -179,7 +206,10 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
             ⚙ SETTINGS
           </a>
           <button
-            onClick={logout}
+            onClick={() => {
+              useStore.getState().clearUser();
+              navigate({ to: '/' });
+            }}
             className="flex-1 border border-sakura-alert/30 px-2 py-1 text-center font-pixel text-[7px] text-sakura-alert transition-colors hover:underline"
           >
             LOGOUT
@@ -193,34 +223,50 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
 function SessionRow({
   s,
   active,
+  isLoading,
   onClick,
+  onDelete,
 }: {
   s: ResearchSession;
   active: boolean;
+  isLoading?: boolean;
   onClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`mb-1 flex w-full items-start gap-2 border-l-[3px] px-3 py-2 text-left transition-colors ${
-        active
-          ? "border-electric-accent bg-electric-accent/10"
-          : "border-transparent hover:bg-white/[0.03]"
-      }`}
-    >
-      <span className="mt-0.5 font-pixel text-[10px]">📄</span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-mono text-[12px] text-mono-white">{s.title}</p>
-        <p className="mt-0.5 font-pixel text-[7px] text-mouse-gray">
-          {new Date(s.createdAt).toLocaleDateString()}
-        </p>
-      </div>
-      <span
-        className="shrink-0 px-1.5 py-0.5 font-pixel text-[7px] text-black"
-        style={{ backgroundColor: LEVEL_COLORS[s.level] }}
+    <div className="group relative flex w-full">
+      <button
+        onClick={onClick}
+        disabled={isLoading}
+        className={`mb-1 flex w-full items-start gap-2 border-l-[3px] px-3 py-2 text-left transition-colors ${
+          active
+            ? "border-electric-accent bg-electric-accent/10"
+            : "border-transparent hover:bg-white/[0.03]"
+        } ${isLoading ? "opacity-50 cursor-wait" : ""}`}
       >
-        L{s.level}
-      </span>
-    </button>
+        <span className="mt-0.5 font-pixel text-[10px]">📄</span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-mono text-[12px] text-mono-white">
+            {isLoading ? "LOADING..." : s.title}
+          </p>
+          <p className="mt-0.5 font-pixel text-[7px] text-mouse-gray">
+            {new Date(s.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+        <span
+          className="shrink-0 px-1.5 py-0.5 font-pixel text-[7px] text-black"
+          style={{ backgroundColor: LEVEL_COLORS[s.level] }}
+        >
+          L{s.level}
+        </span>
+      </button>
+      <button
+        onClick={onDelete}
+        className="absolute right-2 top-2 hidden text-mouse-gray hover:text-sakura-alert group-hover:block font-pixel text-[8px]"
+        title="Delete Session"
+      >
+        ✕
+      </button>
+    </div>
   );
 }

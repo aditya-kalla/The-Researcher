@@ -4,12 +4,15 @@ import type { AgentStreamEntry, ReferencedSource, ResearchResponse, ResearchSess
 
 interface AppState {
   isAuthenticated: boolean;
-  user: { username: string; email: string } | null;
-  login: (username: string, email: string) => void;
-  logout: () => void;
+  user: { id: string; username: string; email: string; avatarUrl?: string } | null;
+  setUser: (user: AppState['user']) => void;
+  clearUser: () => void;
 
   sessions: ResearchSession[];
   currentSessionId: string | null;
+  sessionsLoading?: boolean;
+  loadSessions?: () => Promise<void>;
+  deleteSession: (id: string) => void;
   addSession: (s: ResearchSession) => void;
   setCurrentSession: (id: string | null) => void;
   updateSession: (id: string, data: Partial<ResearchSession>) => void;
@@ -64,11 +67,17 @@ export const useStore = create<AppState>()(
     (set) => ({
       isAuthenticated: false,
       user: null,
-      login: (username, email) => set({ isAuthenticated: true, user: { username, email } }),
-      logout: () => set({ isAuthenticated: false, user: null }),
+      setUser: (user) => set({ isAuthenticated: !!user, user }),
+      clearUser: () => set({ isAuthenticated: false, user: null, sessions: [], currentSessionId: null, currentResearchData: null }),
 
       sessions: [],
       currentSessionId: null,
+      deleteSession: (id: string) => {
+        set((st) => ({ 
+          sessions: st.sessions.filter(s => s.id !== id),
+          currentSessionId: st.currentSessionId === id ? null : st.currentSessionId
+        }))
+      },
       addSession: (s) => set((st) => ({ sessions: [s, ...st.sessions], currentSessionId: s.id })),
       setCurrentSession: (id) => set({ currentSessionId: id }),
       updateSession: (id, data) =>
@@ -129,7 +138,6 @@ export const useStore = create<AppState>()(
       partialize: (s) => ({
         user: s.user,
         isAuthenticated: s.isAuthenticated,
-        sessions: s.sessions,
         defaultLevel: s.defaultLevel,
         defaultLengthMode: s.defaultLengthMode,
         geminiApiKey: s.geminiApiKey,
@@ -138,6 +146,8 @@ export const useStore = create<AppState>()(
         countryFilter: s.countryFilter,
         journalRankFilter: s.journalRankFilter,
         minCitationsFilter: s.minCitationsFilter,
+        sessions: s.sessions,
+        currentSessionId: s.currentSessionId,
       }),
     }
   )

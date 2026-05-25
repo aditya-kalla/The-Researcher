@@ -1,8 +1,9 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useStore } from "@/store/useStore";
 
 export function Navigation() {
-  const { isAuthenticated, user, logout } = useStore();
+  const { isAuthenticated, user } = useStore();
+  const navigate = useNavigate();
   return (
     <nav className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-pixel-border bg-session-dark px-4">
       <Link to="/" className="font-pixel text-[11px] text-cream-terminal">
@@ -21,7 +22,13 @@ export function Navigation() {
               SETTINGS
             </Link>
             <span className="font-mono text-[11px] text-periwinkle-soft">{user?.username}</span>
-            <button onClick={logout} className="font-pixel text-[8px] text-sakura-alert hover:underline">
+            <button
+              onClick={() => {
+                useStore.getState().clearUser();
+                navigate({ to: '/' });
+              }}
+              className="font-pixel text-[8px] text-sakura-alert hover:underline"
+            >
               LOGOUT
             </button>
           </>
