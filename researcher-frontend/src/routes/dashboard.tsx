@@ -413,11 +413,11 @@ function DashboardPage() {
         {isBooting && <ObservatoryOverlay />}
       </AnimatePresence>
       {/* TOP NAV */}
-      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-pixel-border bg-session-dark px-5">
-        <div className="flex items-center gap-3">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-pixel-border bg-session-dark px-6">
+        <div className="flex items-center gap-4">
           <button
             onClick={toggleSidebar}
-            className="font-pixel text-[11px] text-mouse-gray hover:text-mono-white"
+            className="font-pixel text-[12px] text-mouse-gray hover:text-mono-white"
             title="Toggle sidebar"
           >
             {sidebarCollapsed ? "▷" : "◁"}
@@ -439,19 +439,19 @@ function DashboardPage() {
               <rect x="10" y="12" width="2" height="8" fill="#7B6FFF" />
               <rect x="20" y="12" width="2" height="8" fill="#7B6FFF" />
             </svg>
-            <span className="font-pixel text-[12px] text-cream-terminal">THE RESEARCHER</span>
+            <span className="font-pixel text-[13px] text-cream-terminal tracking-wider">THE RESEARCHER</span>
           </a>
         </div>
-        <div className="font-mono text-[13px] text-periwinkle-soft">
+        <div className="font-mono text-[14px] text-periwinkle-soft tracking-wide">
           {current?.title ?? "Untitled Session"}
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <ThemeSwitcher />
           {activeData && (
             <button
               onClick={() => setShowExportModal(true)}
               title="Export research as PDF"
-              className="font-pixel text-[13px] text-periwinkle-soft hover:text-cream-terminal"
+              className="font-pixel text-[15px] text-periwinkle-soft hover:text-cream-terminal"
             >
               📄
             </button>
@@ -462,7 +462,7 @@ function DashboardPage() {
                 setSourceVaultOpen(!sourceVaultOpen);
                 if (sourceVaultOpen) setActiveVaultSource(null);
               }}
-              className={`border px-3 py-1.5 font-pixel text-[9px] tracking-widest transition-all duration-200 ${
+              className={`border px-3 py-1.5 font-pixel text-[10px] tracking-widest transition-all duration-200 ${
                 sourceVaultOpen
                   ? "border-electric-accent/50 bg-electric-accent/[0.08] text-electric-accent"
                   : "border-pixel-border text-mouse-gray hover:text-cream-terminal hover:border-cream-terminal/40"
@@ -473,17 +473,17 @@ function DashboardPage() {
           )}
           <a
             href="/settings"
-            className="font-pixel text-[9px] tracking-[0.15em] text-mouse-gray hover:text-cream-terminal ml-1"
+            className="font-pixel text-[10px] tracking-[0.15em] text-mouse-gray hover:text-cream-terminal ml-1"
           >
             SETTINGS
           </a>
-          <span className="font-mono text-[12px] text-periwinkle-soft ml-1">{user?.username}</span>
-          <div className="flex h-8 w-8 items-center justify-center bg-electric-accent font-pixel text-[9px] text-black">
+          <span className="font-mono text-[13px] text-periwinkle-soft ml-1">{user?.username}</span>
+          <div className="flex h-10 w-10 items-center justify-center bg-electric-accent font-pixel text-[10px] text-black">
             {user?.username.slice(0, 2).toUpperCase()}
           </div>
           <button
             onClick={toggleRightPanel}
-            className="font-pixel text-[11px] text-mouse-gray hover:text-mono-white"
+            className="font-pixel text-[12px] text-mouse-gray hover:text-mono-white"
             title="Toggle right panel"
           >
             {rightPanelCollapsed ? "◁" : "▷"}
@@ -491,7 +491,7 @@ function DashboardPage() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* SIDEBAR */}
         <AnimatePresence initial={false}>
           {!sidebarCollapsed && (
@@ -500,7 +500,7 @@ function DashboardPage() {
               animate={{ width: 260, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="shrink-0 overflow-hidden"
+              className="shrink-0 h-full overflow-hidden flex flex-col"
             >
               <DashboardSidebar onNewSession={newSession} />
             </motion.div>
@@ -508,7 +508,7 @@ function DashboardPage() {
         </AnimatePresence>
 
         {/* CENTRAL */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto">
           <div className="mx-auto max-w-4xl px-6 py-6">
             {/* TABS */}
             <div className="mb-6 flex gap-6 border-b border-pixel-border">
@@ -674,7 +674,7 @@ function DashboardPage() {
               animate={{ width: 300, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="shrink-0 overflow-hidden"
+              className="shrink-0 h-full overflow-hidden flex flex-col"
             >
               <RightPanel data={activeData} />
             </motion.div>
@@ -848,7 +848,7 @@ function PaperSidebar({
             </div>
 
             {/* SCROLLABLE CONTENT */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-6">
               {vaultTab === "overview" && (
                 <>
                   <div className="mb-5">

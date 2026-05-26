@@ -4,7 +4,7 @@ import type { ResearchResponse } from "@/lib/types";
 
 export function RightPanel({ data }: { data: ResearchResponse | null }) {
   return (
-    <aside className="w-[300px] shrink-0 space-y-4 border-l border-pixel-border bg-session-dark p-4">
+    <aside className="h-full overflow-y-auto w-[300px] shrink-0 space-y-4 border-l border-pixel-border bg-session-dark p-4">
       <RetroWindow title="PREREQUISITE_MAP.sys" collapsible defaultCollapsed={false}>
         {data ? (
           <div className="flex flex-col items-center gap-2">

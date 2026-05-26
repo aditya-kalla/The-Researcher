@@ -55,9 +55,9 @@ export function ThemeSwitcher() {
       {/* TRIGGER ORB */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex items-center justify-center gap-1.5 outline-none"
+        className="group relative flex items-center justify-center gap-2 outline-none"
       >
-        <div className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-500 ${
+        <div className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-500 ${
           theme === "light" 
             ? "border border-[#C8922A]/40 bg-[#C8922A]/10 shadow-[0_2px_6px_rgba(200,146,42,0.2)]" 
             : ""
@@ -74,7 +74,7 @@ export function ThemeSwitcher() {
             whileTap={{ scale: 0.95 }}
           />
         </div>
-        <span className="font-pixel text-[5px] tracking-[0.2em] opacity-40 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] group-hover:opacity-80 transition-all duration-300 translate-y-[1px]">
+        <span className="font-pixel text-[6.5px] tracking-[0.2em] opacity-40 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] group-hover:opacity-80 transition-all duration-300 translate-y-[1px]">
           THEME
         </span>
       </button>
@@ -103,7 +103,7 @@ export function ThemeSwitcher() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => handleSwitch(t.id)}
-                  className={`relative flex items-center justify-center w-9 h-6 border font-mono text-[9px] transition-all duration-200 cursor-pointer ${
+                  className={`relative flex items-center justify-center w-11 h-7 border font-mono text-[10px] transition-all duration-200 cursor-pointer ${
                     isActive
                       ? "border-[var(--accent-primary)] text-[var(--text-primary)] bg-[var(--bg-hover)] shadow-[inset_0_0_8px_var(--bg-hover)]"
                       : "border-transparent text-[var(--text-muted)] hover:border-[var(--border-primary)] hover:text-[var(--text-primary)]"

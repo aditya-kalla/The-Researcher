@@ -62,6 +62,7 @@ export async function saveSession(
   userId: string,
   sessionData: {
     id: string
+    title?: string
     topic: string
     level: number
     lengthMode: string
@@ -78,31 +79,32 @@ export async function saveSession(
       sessionData.id
     )
 
+    // Normalize raw data to JSON-safe objects before persistence
+    const safeDashboard = JSON.parse(JSON.stringify(sessionData.researchResponse.dashboard || {}))
+    const safeFrontierCards = JSON.parse(JSON.stringify(sessionData.researchResponse.frontier_cards || []))
+    const safeSourceVault = JSON.parse(JSON.stringify(sessionData.researchResponse.referenced_sources || []))
+    const safeConsensus = JSON.parse(JSON.stringify(sessionData.researchResponse.council_consensus || {}))
+    const safeStream = JSON.parse(JSON.stringify(sessionData.researchResponse.agent_stream || []))
+
     await setDoc(
       sessionRef,
       {
         id: sessionData.id,
-        topic: sessionData.topic,
-        level: sessionData.level,
-        lengthMode: sessionData.lengthMode,
-        filters: sessionData.filters,
+        title: sessionData.title || sessionData.topic || "Untitled Session",
+        topic: sessionData.topic || "",
+        level: sessionData.level || 1,
+        lengthMode: sessionData.lengthMode || "Detailed",
+        filters: sessionData.filters || {},
 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
 
-        dashboard: sessionData.researchResponse.dashboard,
-
-        frontierCards:
-          sessionData.researchResponse.frontier_cards ?? [],
-
-        sourceVault:
-          sessionData.researchResponse.referenced_sources ?? [],
-
-        councilConsensus:
-          sessionData.researchResponse.council_consensus ?? {},
-
-        agentStream:
-          sessionData.researchResponse.agent_stream ?? [],
+        dashboard: safeDashboard,
+        frontierCards: safeFrontierCards,
+        sourceVault: safeSourceVault,
+        councilConsensus: safeConsensus,
+        agentStream: safeStream,
+        sessionStats: JSON.parse(JSON.stringify(sessionData.researchResponse.session_stats || {})),
 
         annotations: {
           bookmarkedClaims: [],
@@ -139,15 +141,24 @@ export async function loadSessions(userId: string) {
 
     const snapshot = await getDocs(q)
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      topic: doc.data().topic,
-      level: doc.data().level,
-      lengthMode: doc.data().lengthMode,
-      timestamp:
-        doc.data().createdAt?.toDate?.()?.toISOString() ??
-        new Date().toISOString(),
-    }))
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      let safeDate = new Date().toISOString();
+      if (data.createdAt?.toDate) {
+        safeDate = data.createdAt.toDate().toISOString();
+      } else if (data.createdAt?.seconds) {
+        safeDate = new Date(data.createdAt.seconds * 1000).toISOString();
+      }
+
+      return {
+        id: doc.id,
+        title: data.title || data.topic || "Untitled Session",
+        topic: data.topic || "",
+        level: data.level || 1,
+        lengthMode: data.lengthMode || "Detailed",
+        createdAt: safeDate,
+      };
+    })
   } catch (e) {
     console.warn('[Firestore] loadSessions failed:', e)
     return []
@@ -172,28 +183,43 @@ export async function loadFullSession(
     if (!snapshot.exists()) return null
 
     const data = snapshot.data()
+    
+    let safeDate = new Date().toISOString();
+    if (data.createdAt?.toDate) {
+      safeDate = data.createdAt.toDate().toISOString();
+    } else if (data.createdAt?.seconds) {
+      safeDate = new Date(data.createdAt.seconds * 1000).toISOString();
+    }
 
     return {
       id: data.id,
-      topic: data.topic,
-      level: data.level,
-      lengthMode: data.lengthMode,
-
-      timestamp: data.createdAt?.toDate?.()?.toISOString(),
-
-      filters: data.filters,
+      title: data.title || data.topic || "Untitled Session",
+      topic: data.topic || "",
+      level: data.level || 1,
+      lengthMode: data.lengthMode || "Detailed",
+      createdAt: safeDate,
+      filters: data.filters || {},
+      
+      researchData: {
+        session: {
+          topic: data.topic || "",
+          level: data.level || 1,
+          level_name: ["", "Casual", "Curious", "Specialist", "Expert"][data.level || 1],
+          length_mode: data.lengthMode || "Detailed",
+          timestamp: safeDate,
+        },
+        dashboard: data.dashboard || {},
+        frontier_cards: data.frontierCards || [],
+        referenced_sources: data.sourceVault || [],
+        council_consensus: data.councilConsensus || {},
+        agent_stream: data.agentStream || [],
+        session_stats: data.sessionStats || { overall_confidence: 0, decay_flags: 0, cross_domain_links: 0, gap_count: 0, frontier_cards: 0 },
+      },
+      
       annotations: data.annotations ?? {
         bookmarkedClaims: [],
         notes: '',
         rating: 0,
-      },
-
-      researchData: {
-        dashboard: data.dashboard,
-        frontier_cards: data.frontierCards,
-        referenced_sources: data.sourceVault,
-        council_consensus: data.councilConsensus,
-        agent_stream: data.agentStream,
       },
     }
   } catch (e) {

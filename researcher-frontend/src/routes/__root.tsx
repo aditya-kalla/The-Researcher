@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { useEffect } from "react";
-import Lenis from "lenis";
+
 import { useStore } from "@/store/useStore";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -19,17 +19,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   // ─── SMOOTH SCROLL ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    const lenis = new Lenis({
-      autoRaf: true,
-      duration: 1.5,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    });
-
-    return () => {
-      lenis.destroy();
-    };
-  }, []);
+  // Lenis disabled: conflicts with internal h-screen flexbox panel scrolling.
 
   // ─── FIREBASE AUTH LISTENER ───────────────────────────────────────────────
   useEffect(() => {

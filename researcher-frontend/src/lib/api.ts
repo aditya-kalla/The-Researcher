@@ -1,4 +1,5 @@
 import type { ResearchResponse, SpecialResponse, ResearchSession } from "./types";
+import { auth } from "./firebase";
 
 export interface ResearchRequest {
   topic: string;
@@ -27,10 +28,16 @@ export async function callResearchAPI(req: ResearchRequest): Promise<ResearchRes
     return mockResearch(req);
   }
 
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) throw new Error('Not authenticated');
+  
+  const token = await firebaseUser.getIdToken();
+
   const res = await fetch(`${API_BASE}/research`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(req),
   });

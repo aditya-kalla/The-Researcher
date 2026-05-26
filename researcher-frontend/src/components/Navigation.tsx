@@ -8,30 +8,30 @@ export function Navigation() {
   const { isAuthenticated, user } = useStore();
   const navigate = useNavigate();
   return (
-    <nav className="sticky top-0 z-30 flex h-[52px] items-center justify-between border-b border-pixel-border bg-session-dark px-5">
-      <Link to="/" className="font-pixel text-[12px] text-cream-terminal">
+    <nav className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-pixel-border bg-session-dark px-6">
+      <Link to="/" className="font-pixel text-[13px] text-cream-terminal tracking-wider">
         ◆ THE RESEARCHER
       </Link>
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-8">
         <ThemeSwitcher />
-        <Link to="/" className="font-pixel text-[9px] text-mouse-gray hover:text-mono-white tracking-widest">
+        <Link to="/" className="font-pixel text-[10px] text-mouse-gray hover:text-mono-white tracking-widest">
           HOME
         </Link>
         {isAuthenticated ? (
           <>
-            <Link to="/dashboard" className="font-pixel text-[9px] text-mouse-gray hover:text-mono-white tracking-widest">
+            <Link to="/dashboard" className="font-pixel text-[10px] text-mouse-gray hover:text-mono-white tracking-widest">
               DASHBOARD
             </Link>
-            <Link to="/settings" className="font-pixel text-[9px] text-mouse-gray hover:text-mono-white tracking-widest">
+            <Link to="/settings" className="font-pixel text-[10px] text-mouse-gray hover:text-mono-white tracking-widest">
               SETTINGS
             </Link>
-            <span className="font-mono text-[12px] text-periwinkle-soft ml-2">{user?.username}</span>
+            <span className="font-mono text-[13px] text-periwinkle-soft ml-2">{user?.username}</span>
             <button
               onClick={async () => {
                 await signOut(auth);
                 navigate({ to: '/' });
               }}
-              className="font-pixel text-[9px] text-sakura-alert hover:underline tracking-widest"
+              className="font-pixel text-[10px] text-sakura-alert hover:underline tracking-widest"
             >
               LOGOUT
             </button>

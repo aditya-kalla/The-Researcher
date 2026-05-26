@@ -35,6 +35,12 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
     sessionsLoading,
     deleteSession,
     setResearchData,
+    updateSession,
+    setAnnotations,
+    setDateRangeFilter,
+    setCountryFilter,
+    setJournalRankFilter,
+    setMinCitationsFilter,
   } = useStore();
   const navigate = useNavigate();
 
@@ -52,7 +58,21 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
     try {
       const full = await loadFullSession(user.id, session.id);
       if (full) {
-        setResearchData(full.researchData as any);
+        // Hydrate the full research payload into the local session object
+        updateSession(session.id, { researchData: full.researchData as any });
+        
+        // Hydrate global session state
+        if (full.annotations) setAnnotations(full.annotations);
+        
+        // Hydrate filters
+        if (full.filters) {
+          if (full.filters.dateRange) setDateRangeFilter(full.filters.dateRange);
+          if (full.filters.country) setCountryFilter(full.filters.country);
+          if (full.filters.journalRank) setJournalRankFilter(full.filters.journalRank);
+          if (typeof full.filters.minCitations === 'number') setMinCitationsFilter(full.filters.minCitations);
+        }
+
+        // Trigger dashboard switch
         setCurrentSession(session.id);
       }
     } finally {
@@ -96,7 +116,7 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
   };
 
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col border-r border-pixel-border bg-session-dark">
+    <aside className="flex w-[260px] h-full shrink-0 flex-col border-r border-pixel-border bg-session-dark">
       {/* SECTION 1 — TOP HEADER */}
       <div className="flex items-center gap-2 border-b border-pixel-border/40 bg-black/20 px-3 py-2">
         <span className="text-electric-accent font-pixel text-[8px]">◆</span>
@@ -252,6 +272,21 @@ export function DashboardSidebar({ onNewSession }: { onNewSession: () => void })
   );
 }
 
+function safeFormatDate(val: any): string {
+  if (!val) return "UNKNOWN DATE";
+  try {
+    if (typeof val.toDate === "function") return val.toDate().toLocaleDateString();
+    // Handle unix timestamp if it's passed as seconds in an object (like Firestore timestamp without methods)
+    if (val.seconds) return new Date(val.seconds * 1000).toLocaleDateString();
+    
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "UNKNOWN DATE";
+    return d.toLocaleDateString();
+  } catch (e) {
+    return "UNKNOWN DATE";
+  }
+}
+
 function SessionRow({
   s,
   active,
@@ -265,6 +300,9 @@ function SessionRow({
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
 }) {
+  const safeTitle = s.title || "Untitled Session";
+  const safeLevel = s.level || 1;
+
   return (
     <div className="group relative flex w-full">
       <button
@@ -279,17 +317,17 @@ function SessionRow({
         <span className="mt-0.5 font-pixel text-[8px]">📄</span>
         <div className="min-w-0 flex-1">
           <p className="truncate font-mono text-[10px] text-mono-white">
-            {isLoading ? "LOADING..." : s.title}
+            {isLoading ? "LOADING..." : safeTitle}
           </p>
           <p className="mt-0.5 font-pixel text-[6px] text-mouse-gray">
-            {new Date(s.createdAt).toLocaleDateString()}
+            {safeFormatDate(s.createdAt)}
           </p>
         </div>
         <span
           className="shrink-0 px-1 py-0.5 font-pixel text-[6px] text-black"
-          style={{ backgroundColor: LEVEL_COLORS[s.level] }}
+          style={{ backgroundColor: LEVEL_COLORS[safeLevel] || LEVEL_COLORS[1] }}
         >
-          L{s.level}
+          L{safeLevel}
         </span>
       </button>
       <button
