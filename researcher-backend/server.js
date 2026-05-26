@@ -3,8 +3,17 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import Groq from 'groq-sdk'
 import multer from 'multer'
+import admin from 'firebase-admin'
 
 dotenv.config()
+
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: "the-researcher-ef159",
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  })
+})
 
 const app = express()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -25,6 +34,21 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }))
 
+// ─── AUTH MIDDLEWARE ──────────────────────────────────────────────────────────
+async function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing token' })
+  }
+  try {
+    const token = authHeader.replace('Bearer ', '')
+    const decoded = await admin.auth().verifyIdToken(token)
+    req.user = decoded
+    next()
+  } catch(e) {
+    return res.status(401).json({ error: 'Invalid token' })
+  }
+}
 
 // ─── SYSTEM INSTRUCTIONS ──────────────────────────────────────────────────────
 const SYSTEM_INSTRUCTIONS = `You are THE RESEARCHER — a production-grade Cognitive Research Architecture.
@@ -88,14 +112,9 @@ RETURN THIS EXACT JSON STRUCTURE:
     "key_caveat": "string — the single most important limitation"
   },
   "dashboard": {
-    "executive_summary": { "text": "A rich, multi-paragraph executive summary of 200-350 words. Must include: (1) a plain-language definition of the topic, (2) WHY it matters scientifically and practically, (3) the current state of the field, (4) the single most contested or uncertain aspect. Scaled by length_mode: Summary=150w, Detailed=300w, Deep Dive=500w. Never write fewer than 3 paragraphs.", "confidence": 82 },
-    "core_mechanisms": { "text": "A structured multi-section explanation of HOW the topic works at a mechanistic level. Must include: (1) the primary mechanism in plain terms, (2) the key variables and what changing them does, (3) how sub-components interact, (4) where current models break down. Scaled by length_mode: Summary=200w, Detailed=400w, Deep Dive=700w+. For Level 3-4, include minimum 2 LaTeX-formatted equations in the equations array. Never reduce to a single paragraph.", "equations": [], "confidence": 80 },
-    "key_claims": [
-      { "claim": "string", "confidence": 88 },
-      { "claim": "string", "confidence": 74 },
-      { "claim": "string", "confidence": 91 },
-      { "claim": "string", "confidence": 67 }
-    ],
+    "executive_summary": { "text": "A rich, structured executive synthesis written like a high-level research briefing rather than a chatbot summary. The executive_summary MUST: (1) Define the topic in precise but plain language. (2) Explain WHY the topic matters scientifically, technologically, philosophically, economically, medically, or societally. (3) Describe the current state of the field. (4) Identify the most important unresolved uncertainty, debate, contradiction, or frontier challenge. (5) Mention at least one historical milestone or major breakthrough where relevant. (6) Maintain an intelligent editorial tone — never sounding like generic AI-generated educational text. Structure requirements: MINIMUM 3 distinct paragraphs. Distinct paragraph transitions. No bullet points. No repetitive phrasing. Avoid generic opening lines like 'X is an important field...'. Length scaling: Summary mode: MINIMUM 150 words. Detailed mode: MINIMUM 300 words. Deep Dive mode: MINIMUM 500 words. Deep Dive mode should feel like a condensed review article introduction, an editorial intelligence brief, a premium research synthesis. The writing should feel grounded, observational, intelligent, source-aware, academically literate. NOT verbose filler, motivational, or generic textbook writing.", "confidence": 82 },
+    "core_mechanisms": { "text": "A deeply structured mechanistic explanation describing HOW the system/topic/process actually works. The explanation MUST include: (1) The primary mechanism in plain language. (2) The governing variables and what changing them does. (3) Interactions between sub-components or subsystems. (4) Important causal relationships. (5) Current limitations or breakdowns in existing models. (6) Real-world implications of those mechanisms. (7) Where scientific disagreement or uncertainty still exists. The response MUST be divided into multiple conceptual sections or paragraphs. NEVER reduce to one paragraph, provide vague conceptual summaries, or explain only at surface level. For Level 3 and Level 4: include at least TWO meaningful LaTeX equations in the equations array. Equations must correspond directly to mechanisms discussed and should not be decorative. Examples: Schrödinger equation, Navier-Stokes, Transformer attention, Bayesian update, Lorentz factor, entropy equations, diffusion equations, etc. Length scaling: Summary mode: MINIMUM 200 words. Detailed mode: MINIMUM 400 words. Deep Dive mode: MINIMUM 700 words. Deep Dive mode should feel like a compressed systems-level technical explainer, an academic whitepaper section, an interdisciplinary mechanism briefing. The tone should remain readable, intelligent, dense, mechanistic, layered. NOT generic educational simplification.", "equations": [], "confidence": 80 },
+    "key_claims": "key_claims must contain SPECIFIC, falsifiable, research-oriented findings. Each claim MUST: be a complete sentence, describe a concrete finding, include measurable or mechanistic specificity where possible, avoid vague summaries or categories, feel grounded in actual literature. BAD: 'Gravity affects objects.' GOOD: 'Gravitational time dilation causes clocks at sea level to run approximately 45 microseconds per day slower than clocks aboard GPS satellites, requiring relativistic correction for accurate navigation systems (Ashby, 2002).' Where possible: include author + year inline, mention quantitative effects, mention observed outcomes, mention causal relationships, mention experimental findings, mention predictive consequences. The claims should collectively represent multiple perspectives, reveal tensions or contradictions where relevant, include frontier insights, include at least one surprising or counterintuitive finding. Minimum counts: Summary mode: MINIMUM 4 claims. Detailed mode: MINIMUM 6 claims. Deep Dive mode: MINIMUM 8 claims. Deep Dive claims should resemble compressed literature review insights, high-density academic findings, synthesis notes from multiple papers. FORMAT: array of objects with fields claim (string) and confidence (number 0-100).",
     "epistemic_decay": {
       "stale": [{ "claim": "string", "stale_as_of": "2019", "superseded_by": "Author et al., Year", "impact": "string" }],
       "fresh": [
@@ -140,16 +159,13 @@ RETURN THIS EXACT JSON STRUCTURE:
     "gap_count": 3,
     "frontier_cards": 8
   },
-  "referenced_sources": [
-    { "id": "src_001", "title": "Full paper title grounding a key claim", "authors": "Smith, J., Lee, K., et al.", "year": 2022, "venue": "Nature Machine Intelligence", "citations": 340, "abstract": "A 150-200 word abstract summarizing the paper's contribution, methodology, and key findings. Must feel like a real academic abstract.", "relevance_note": "One sentence explaining why the agents used this paper to support a specific claim.", "category": "FOUNDATION", "doi_hint": "10.1038/s42256-022-00001-1", "open_access": true },
-    { "id": "src_002", "title": "Another grounding paper title", "authors": "Chen, W., Patel, R.", "year": 2023, "venue": "ICML 2023", "citations": 128, "abstract": "150-200 word abstract...", "relevance_note": "Why agents used this.", "category": "EMPIRICAL", "doi_hint": "10.xxxx/xxxxx", "open_access": false }
-  ],
+  "referenced_sources": "The referenced_sources array MUST directly support executive_summary, key_claims, and core_mechanisms. The synthesis should feel causally connected to the references. Avoid random bibliography generation, unrelated paper titles, or shallow topic matching. Each referenced source should plausibly justify at least one claim or mechanism discussed. EXACTLY 6-10 items. Each must have all fields: id, title, authors, year, venue, citations, abstract (150-200 words — must feel like a real academic abstract), relevance_note (1 sentence explaining which specific claim or mechanism this source grounds), category (FOUNDATION|EMPIRICAL|METHODOLOGY|REVIEW|FRONTIER), doi_hint, open_access.",
   "special_response": null
 }
 
 RULES:
 - agent_stream: ALL 8 agents in exact order shown above
-- key_claims: use field "claim" NOT "text". Minimum 4 for Summary, 6 for Detailed, 8 for Deep Dive. Each claim must be a COMPLETE sentence stating a specific, falsifiable finding — not a vague category. Bad example: 'Gravity affects objects'. Good example: 'Gravitational time dilation causes clocks at sea level to run approximately 45 microseconds per day slower than clocks in GPS satellites, requiring relativistic correction in navigation systems (Ashby, 2002).' Include author + year inline where possible.
+- key_claims: use field "claim" NOT "text". Each claim must be a COMPLETE sentence stating a specific, falsifiable finding — not a vague category or conceptual statement. Bad example: 'Gravity affects objects'. Good example: 'Gravitational time dilation causes clocks at sea level to run approximately 45 microseconds per day slower than clocks in GPS satellites, requiring relativistic correction in navigation systems (Ashby, 2002).' Include author + year inline where possible. Claims must contain concrete falsifiable findings, not vague conceptual statements.
 - epistemic_decay.stale: MINIMUM 1 item, NEVER skip
 - epistemic_decay.fresh: MINIMUM 2 items
 - frontier_cards: EXACTLY 8 cards — 2 FOUNDATION, 3 FRONTIER (year 2024-2026), 2 WILDCARD, 1 HARDWARE_BRIDGE
@@ -157,12 +173,13 @@ RULES:
 - research_gaps: 3-5 items, each must name specific subject + method + benchmark. NEVER write "more research is needed"
 - cross_domain_analogy structural_isomorphism: MUST be mechanistic/mathematical, NOT a surface metaphor
 - session_stats.frontier_cards must always equal 8
-- referenced_sources: EXACTLY 6-10 items. Each must have all fields: id, title, authors, year, venue, citations, abstract (150-200 words), relevance_note (1 sentence), category (FOUNDATION|EMPIRICAL|METHODOLOGY|REVIEW|FRONTIER), doi_hint, open_access. These are the bibliography — they MUST correspond to claims in key_claims and core_mechanisms. They are NOT random suggestions.
+- referenced_sources: EXACTLY 6-10 items. Each must have all fields: id, title, authors, year, venue, citations, abstract (150-200 words), relevance_note (1 sentence), category (FOUNDATION|EMPIRICAL|METHODOLOGY|REVIEW|FRONTIER), doi_hint, open_access. These are the bibliography — they MUST correspond to claims in key_claims and core_mechanisms. They are NOT random suggestions. Sources must align CAUSALLY with claims and mechanisms, not merely topically.
 - NEVER say "As an AI" or break character
 - NEVER produce output that fails JSON.parse()
-- executive_summary.text: MINIMUM 150 words for Summary, 300 for Detailed, 500 for Deep Dive. Violating this minimum is a critical failure.
-- core_mechanisms.text: MINIMUM 200 words for Summary, 400 for Detailed, 700 for Deep Dive. Must have distinct paragraphs separated by newlines, not a single block.
-- key_claims: MINIMUM 4 for Summary, 6 for Detailed, 8 for Deep Dive.
+- executive_summary.text: MINIMUM 150 words for Summary, 300 for Detailed, 500 for Deep Dive. Violating this minimum is a CRITICAL FAILURE. Must contain at least 3 distinct paragraphs. Must feel like an editorial intelligence briefing, not a chatbot summary.
+- core_mechanisms.text: MINIMUM 200 words for Summary, 400 for Detailed, 700 for Deep Dive. Must contain multiple distinct conceptual sections or paragraphs separated by newlines, not a single block. Must describe actual mechanisms, causal relationships, and model limitations.
+- key_claims: MINIMUM 4 for Summary, 6 for Detailed, 8 for Deep Dive. Must be concrete, falsifiable, and research-grounded.
+- equations: For Level 3-4 research, minimum 2 meaningful LaTeX equations required. Equations must correspond to mechanisms discussed and must not be decorative.
 
 SPECIAL COMMANDS — when input contains these phrases, populate special_response:
 "Logic Lab: show Advocate vs Skeptic debate" → type: "logic_lab" with round_1_advocate, round_2_skeptic, round_3_advocate_response, round_4_empiricist_verdict
@@ -171,7 +188,7 @@ SPECIAL COMMANDS — when input contains these phrases, populate special_respons
 "Go to Level [N]" → type: "level_change" with from_level, to_level, note — AND rebuild dashboard at new level`
 
 // ─── MAIN RESEARCH ENDPOINT ───────────────────────────────────────────────────
-app.post('/api/research', upload.array('files', 5), async (req, res) => {
+app.post('/api/research', requireAuth, upload.array('files', 5), async (req, res) => {
     const startTime = Date.now()
 
     try {

@@ -17,11 +17,15 @@ export function DashboardPanels({
   onExpandGap,
   onAnalogyDetail,
   onExport,
+  annotations,
+  onToggleBookmark,
 }: {
   data: ResearchResponse;
   onExpandGap?: (id: number) => void;
   onAnalogyDetail?: () => void;
   onExport?: () => void;
+  annotations?: { bookmarkedClaims: string[] };
+  onToggleBookmark?: (claim: string) => void;
 }) {
   const d = data.dashboard;
   return (
@@ -79,16 +83,34 @@ export function DashboardPanels({
       <motion.div variants={item}>
         <h3 className="mb-3 font-pixel text-[10px] tracking-wider text-cream-terminal">KEY_CLAIMS.dat</h3>
         <motion.div variants={stagger} className="space-y-3">
-          {d.key_claims.map((c, i) => (
-            <motion.div key={i} variants={item}>
-              <RetroWindow title={`◆ CLAIM [${c.confidence}%]`}>
-                <p className="font-body text-[13px] leading-[1.7] text-[rgba(245,237,211,0.85)]">{c.claim}</p>
-                <div className="mt-3">
-                  <PixelProgressBar value={c.confidence} color="lime" size="sm" showValue={false} />
-                </div>
-              </RetroWindow>
-            </motion.div>
-          ))}
+          {d.key_claims.map((c, i) => {
+            const claimId = c.claim.slice(0, 60);
+            const isBookmarked = annotations?.bookmarkedClaims.includes(claimId);
+            return (
+              <motion.div key={i} variants={item}>
+                <RetroWindow title={`◆ CLAIM [${c.confidence}%]`}>
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => onToggleBookmark?.(claimId)}
+                      className={`shrink-0 mt-1 font-pixel text-[10px] transition-all duration-200 ${
+                        isBookmarked
+                          ? "text-lime-signal opacity-100"
+                          : "text-mouse-gray opacity-40 hover:opacity-100 hover:scale-110 hover:text-lime-signal hover:drop-shadow-[0_0_8px_rgba(212,248,122,0.8)]"
+                      }`}
+                    >
+                      ◆
+                    </button>
+                    <div className="flex-1">
+                      <p className="font-body text-[13px] leading-[1.7] text-[rgba(245,237,211,0.85)]">{c.claim}</p>
+                      <div className="mt-3">
+                        <PixelProgressBar value={c.confidence} color="lime" size="sm" showValue={false} />
+                      </div>
+                    </div>
+                  </div>
+                </RetroWindow>
+              </motion.div>
+            );
+          })}
         </motion.div>
       </motion.div>
 
@@ -119,9 +141,9 @@ export function DashboardPanels({
       <motion.div variants={item}>
         <RetroWindow title="◈ CROSS_DOMAIN_LINK.dat" variant="accent">
           <div className="flex items-center justify-around py-2">
-            <PixelNode label={d.cross_domain_analogy.domain_a} color="#7B6FFF" />
+            <PixelNode label={d.cross_domain_analogy.domain_a} color="var(--accent-primary)" />
             <DashedArrow />
-            <PixelNode label={d.cross_domain_analogy.domain_b} color="#D4F87A" />
+            <PixelNode label={d.cross_domain_analogy.domain_b} color="var(--accent-signal)" />
           </div>
           <p className="mt-4 font-body text-[13px] italic leading-[1.7] text-[rgba(245,237,211,0.85)]">
             {d.cross_domain_analogy.structural_isomorphism}
@@ -220,14 +242,14 @@ function DashedArrow() {
         y1="10"
         x2="72"
         y2="10"
-        stroke="#A8B4FF"
+        stroke="var(--accent-secondary)"
         strokeWidth="2"
         strokeDasharray="6 4"
         initial={{ strokeDashoffset: 100 }}
         animate={{ strokeDashoffset: 0 }}
         transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
       />
-      <polygon points="72,4 80,10 72,16" fill="#A8B4FF" />
+      <polygon points="72,4 80,10 72,16" fill="var(--accent-secondary)" />
     </svg>
   );
 }

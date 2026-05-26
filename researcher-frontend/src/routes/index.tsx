@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, useScroll, useTransform, useMotionValue, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Navigation } from "@/components/Navigation";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Sparkles } from "@/components/Sparkles";
 import { Typewriter } from "@/components/Typewriter";
 import { RetroWindow } from "@/components/RetroWindow";
@@ -25,6 +26,119 @@ function PixelAtmosphereCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef({ x: -1000, y: -1000 });
   const scrollRef = useRef(0);
+  const cellsRef = useRef<any[]>([]);
+  const animFrameRef = useRef<number>(0);
+  const baseColorRef = useRef<number[]>([13, 15, 26]);
+
+  function getThemeCanvasColors() {
+    const style = getComputedStyle(document.documentElement);
+    const get = (v: string) => parseInt(style.getPropertyValue(v).trim()) || 0;
+    return {
+      base:    [get('--canvas-base-r'),    get('--canvas-base-g'),    get('--canvas-base-b')],
+      bloom:   [get('--canvas-bloom-r'),   get('--canvas-bloom-g'),   get('--canvas-bloom-b')],
+      diffuse: [get('--canvas-diffuse-r'), get('--canvas-diffuse-g'), get('--canvas-diffuse-b')],
+      haze:    [get('--canvas-haze-r'),    get('--canvas-haze-g'),    get('--canvas-haze-b')],
+      ghost:   [get('--canvas-ghost-r'),   get('--canvas-ghost-g'),   get('--canvas-ghost-b')],
+    };
+  }
+
+  function initializeCells(colors: ReturnType<typeof getThemeCanvasColors>) {
+    const canvas = canvasRef.current;
+    if (!canvas) return [];
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return [];
+
+    const dpr = window.devicePixelRatio || 1;
+    const CUBE_SIZE = 72;
+    const GAP = 8;
+    const TOTAL_SIZE = CUBE_SIZE + GAP;
+
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.scale(dpr, dpr);
+
+    const cols = Math.ceil(window.innerWidth / TOTAL_SIZE) + 1;
+    const rows = Math.ceil(window.innerHeight / TOTAL_SIZE) + 1;
+
+    const BASE = colors.base;
+    const BLOOM = colors.bloom;
+    const DIFFUSE = colors.diffuse;
+    const HAZE = colors.haze;
+    const GHOST = colors.ghost;
+    const MID = [
+      Math.round((BLOOM[0] + DIFFUSE[0]) / 2),
+      Math.round((BLOOM[1] + DIFFUSE[1]) / 2),
+      Math.round((BLOOM[2] + DIFFUSE[2]) / 2),
+    ];
+
+    baseColorRef.current = BASE;
+
+    const getInfluence = (nx: number, ny: number, cx: number, cy: number, maxDist: number) => {
+      const dist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
+      return Math.max(0, 1 - dist / maxDist);
+    };
+
+    const cells: any[] = [];
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const nx = x / cols;
+        const ny = y / rows;
+
+        let r = BASE[0];
+        let g = BASE[1];
+        let b = BASE[2];
+
+        const inf1 = getInfluence(nx, ny, 0, 0, 0.7);
+        r += (BLOOM[0] - BASE[0]) * inf1;
+        g += (BLOOM[1] - BASE[1]) * inf1;
+        b += (BLOOM[2] - BASE[2]) * inf1;
+
+        const inf2 = getInfluence(nx, ny, 0, 1, 0.6);
+        r += (HAZE[0] - BASE[0]) * inf2;
+        g += (HAZE[1] - BASE[1]) * inf2;
+        b += (HAZE[2] - BASE[2]) * inf2;
+
+        const inf3 = getInfluence(nx, ny, 0.5, 0.5, 0.5);
+        r += (MID[0] - BASE[0]) * inf3;
+        g += (MID[1] - BASE[1]) * inf3;
+        b += (MID[2] - BASE[2]) * inf3;
+
+        const inf4 = getInfluence(nx, ny, 1, 0, 0.6);
+        r += (DIFFUSE[0] - BASE[0]) * inf4;
+        g += (DIFFUSE[1] - BASE[1]) * inf4;
+        b += (DIFFUSE[2] - BASE[2]) * inf4;
+
+        const inf5 = getInfluence(nx, ny, 1, 1, 0.6);
+        r += (GHOST[0] - BASE[0]) * inf5;
+        g += (GHOST[1] - BASE[1]) * inf5;
+        b += (GHOST[2] - BASE[2]) * inf5;
+
+        r += (BLOOM[0] - BASE[0]) * 0.05;
+        g += (BLOOM[1] - BASE[1]) * 0.05;
+        b += (BLOOM[2] - BASE[2]) * 0.05;
+
+        const lowFreq = Math.sin(nx * Math.PI * 3) * Math.cos(ny * Math.PI * 3);
+        const highFreq = Math.sin(nx * Math.PI * 8 + ny * Math.PI * 4) * 0.5;
+        const density = Math.max(0, Math.min(1, (lowFreq + highFreq) * 0.5 + 0.5));
+
+        cells.push({
+          x: x * TOTAL_SIZE,
+          y: y * TOTAL_SIZE,
+          cx: x * TOTAL_SIZE + CUBE_SIZE / 2,
+          cy: y * TOTAL_SIZE + CUBE_SIZE / 2,
+          targetR: Math.min(255, Math.max(0, r)),
+          targetG: Math.min(255, Math.max(0, g)),
+          targetB: Math.min(255, Math.max(0, b)),
+          density,
+          energy: 0,
+          offsetX: 0,
+          offsetY: 0,
+          baseOffset: Math.random() * Math.PI * 2,
+        });
+      }
+    }
+    return cells;
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -32,8 +146,7 @@ function PixelAtmosphereCanvas() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Use devicePixelRatio for crisp glass rendering
-    const dpr = window.devicePixelRatio || 1;
+    const CUBE_SIZE = 72;
 
     const handleMouseMove = (e: MouseEvent) => {
       cursorRef.current = { x: e.clientX, y: e.clientY };
@@ -48,106 +161,32 @@ function PixelAtmosphereCanvas() {
 
     scrollRef.current = window.scrollY;
 
-    const CUBE_SIZE = 72;
-    const GAP = 8;
-    const TOTAL_SIZE = CUBE_SIZE + GAP;
-
-    let cols = 0;
-    let rows = 0;
-    let cells: any[] = [];
-
-    const DEEP_NAVY = [13, 15, 26];
-    const ELECTRIC_BLOOM = [60, 45, 140];
-    const TEAL_DIFFUSE = [20, 55, 75];
-    const MAGENTA_HAZE = [80, 25, 60];
-    const LIME_GHOST = [30, 60, 25];
-    const INDIGO_MID = [35, 30, 80];
-
-    const getInfluence = (nx: number, ny: number, cx: number, cy: number, maxDist: number) => {
-      const dist = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2);
-      return Math.max(0, 1 - dist / maxDist);
-    };
-
-    const initCells = () => {
-      // Setup high-res canvas
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      ctx.scale(dpr, dpr);
-
-      // Add extra cells to handle edges during scroll/shift
-      cols = Math.ceil(window.innerWidth / TOTAL_SIZE) + 1;
-      rows = Math.ceil(window.innerHeight / TOTAL_SIZE) + 1;
-
-      cells = [];
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          const nx = x / cols;
-          const ny = y / rows;
-
-          let r = DEEP_NAVY[0];
-          let g = DEEP_NAVY[1];
-          let b = DEEP_NAVY[2];
-
-          const inf1 = getInfluence(nx, ny, 0, 0, 0.7);
-          r += (ELECTRIC_BLOOM[0] - DEEP_NAVY[0]) * inf1;
-          g += (ELECTRIC_BLOOM[1] - DEEP_NAVY[1]) * inf1;
-          b += (ELECTRIC_BLOOM[2] - DEEP_NAVY[2]) * inf1;
-
-          const inf2 = getInfluence(nx, ny, 0, 1, 0.6);
-          r += (MAGENTA_HAZE[0] - DEEP_NAVY[0]) * inf2;
-          g += (MAGENTA_HAZE[1] - DEEP_NAVY[1]) * inf2;
-          b += (MAGENTA_HAZE[2] - DEEP_NAVY[2]) * inf2;
-
-          const inf3 = getInfluence(nx, ny, 0.5, 0.5, 0.5);
-          r += (INDIGO_MID[0] - DEEP_NAVY[0]) * inf3;
-          g += (INDIGO_MID[1] - DEEP_NAVY[1]) * inf3;
-          b += (INDIGO_MID[2] - DEEP_NAVY[2]) * inf3;
-
-          const inf4 = getInfluence(nx, ny, 1, 0, 0.6);
-          r += (TEAL_DIFFUSE[0] - DEEP_NAVY[0]) * inf4;
-          g += (TEAL_DIFFUSE[1] - DEEP_NAVY[1]) * inf4;
-          b += (TEAL_DIFFUSE[2] - DEEP_NAVY[2]) * inf4;
-
-          const inf5 = getInfluence(nx, ny, 1, 1, 0.6);
-          r += (LIME_GHOST[0] - DEEP_NAVY[0]) * inf5;
-          g += (LIME_GHOST[1] - DEEP_NAVY[1]) * inf5;
-          b += (LIME_GHOST[2] - DEEP_NAVY[2]) * inf5;
-
-          r += (ELECTRIC_BLOOM[0] - DEEP_NAVY[0]) * 0.05;
-          g += (ELECTRIC_BLOOM[1] - DEEP_NAVY[1]) * 0.05;
-          b += (ELECTRIC_BLOOM[2] - DEEP_NAVY[2]) * 0.05;
-
-          // Generate organic structural density for compositional depth
-          const lowFreq = Math.sin(nx * Math.PI * 3) * Math.cos(ny * Math.PI * 3);
-          const highFreq = Math.sin(nx * Math.PI * 8 + ny * Math.PI * 4) * 0.5;
-          const density = Math.max(0, Math.min(1, (lowFreq + highFreq) * 0.5 + 0.5));
-
-          cells.push({
-            x: x * TOTAL_SIZE,
-            y: y * TOTAL_SIZE,
-            cx: x * TOTAL_SIZE + CUBE_SIZE / 2,
-            cy: y * TOTAL_SIZE + CUBE_SIZE / 2,
-            targetR: Math.min(255, Math.max(0, r)),
-            targetG: Math.min(255, Math.max(0, g)),
-            targetB: Math.min(255, Math.max(0, b)),
-            density,
-            energy: 0,
-            offsetX: 0,
-            offsetY: 0,
-            baseOffset: Math.random() * Math.PI * 2,
-          });
-        }
-      }
-    };
-
-    initCells();
+    // Initialize cells from theme CSS variables
+    cellsRef.current = initializeCells(getThemeCanvasColors());
 
     const handleResize = () => {
-      initCells();
+      cellsRef.current = initializeCells(getThemeCanvasColors());
     };
     window.addEventListener("resize", handleResize);
 
-    let animationFrameId: number;
+    // Watch for theme changes via data-theme attribute
+    const observer = new MutationObserver(() => {
+      if (canvasRef.current) {
+        canvasRef.current.style.transition = 'opacity 200ms ease';
+        canvasRef.current.style.opacity = '0';
+        setTimeout(() => {
+          const newColors = getThemeCanvasColors();
+          cellsRef.current = initializeCells(newColors);
+          if (canvasRef.current) {
+            canvasRef.current.style.opacity = '1';
+          }
+        }, 220);
+      }
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
 
     const drawRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
       ctx.beginPath();
@@ -164,61 +203,51 @@ function PixelAtmosphereCanvas() {
     };
 
     const render = () => {
-      // Clear with solid navy
-      ctx.fillStyle = `rgb(${DEEP_NAVY[0]}, ${DEEP_NAVY[1]}, ${DEEP_NAVY[2]})`;
+      const BASE = baseColorRef.current;
+      ctx.fillStyle = `rgb(${BASE[0]}, ${BASE[1]}, ${BASE[2]})`;
       ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
       const cx = cursorRef.current.x;
       const cy = cursorRef.current.y;
       const scrollY = scrollRef.current;
       const time = Date.now() * 0.0005;
+      const cells = cellsRef.current;
 
       for (let i = 0; i < cells.length; i++) {
         const cell = cells[i];
 
-        // 1. Calculate Cursor Distance
         const dist = Math.hypot(cell.cx - cx, cell.cy - cy);
-        const influenceRadius = 450; // Larger, softer optical field
+        const influenceRadius = 450;
 
-        // 2. Optical Luminous Energy (Trapped light)
         if (dist < influenceRadius) {
           const power = Math.pow((influenceRadius - dist) / influenceRadius, 2);
-          // Dense clusters trap more light and bloom brighter (interconnected bleed)
           const densityMultiplier = 0.04 + cell.density * 0.14;
           cell.energy += power * densityMultiplier;
         }
 
-        // Glass memory - slow fade of trapped light
         cell.energy += (0 - cell.energy) * 0.03;
 
-        // 3. Subtle anchored parallax (NO displacement/pushing)
         const ambientY = Math.sin(time + cell.baseOffset) * 1.5 - (scrollY * 0.05);
         const ambientX = Math.cos(time + cell.baseOffset) * 1.5;
 
         const drawX = cell.x + ambientX;
         const drawY = cell.y + ambientY;
 
-        // Calculate Glass Color
-        // Density dictates the dim base state (dense areas hold more base color)
         const dimR = cell.targetR * (0.03 + cell.density * 0.15);
         const dimG = cell.targetG * (0.03 + cell.density * 0.15);
         const dimB = cell.targetB * (0.03 + cell.density * 0.15);
 
         const glow = Math.min(cell.energy * 2.2, 3.5);
 
-        // Spectral shift (injects white/cyan into the center of the bloom)
         const whiteMix = Math.max(0, glow - 1.5) * 35;
 
         const finalR = Math.min(255, dimR + (cell.targetR - dimR) * glow + whiteMix);
         const finalG = Math.min(255, dimG + (cell.targetG - dimG) * glow + whiteMix);
         const finalB = Math.min(255, dimB + (cell.targetB - dimB) * glow + whiteMix);
 
-        // 4. Directional Refraction Gradients
-        // Angle points from cursor TO cell
         let gradX1, gradY1, gradX2, gradY2;
 
         if (dist < influenceRadius * 2) {
-          // Light source is the cursor
           const angleToCursor = Math.atan2(cy - cell.cy, cx - cell.cx);
           const nx = Math.cos(angleToCursor);
           const ny = Math.sin(angleToCursor);
@@ -226,59 +255,54 @@ function PixelAtmosphereCanvas() {
           const centerX = drawX + CUBE_SIZE / 2;
           const centerY = drawY + CUBE_SIZE / 2;
 
-          // Gradient starts at the edge facing the cursor and ends at the opposite edge
           gradX1 = centerX + nx * (CUBE_SIZE / 2);
           gradY1 = centerY + ny * (CUBE_SIZE / 2);
           gradX2 = centerX - nx * (CUBE_SIZE / 2);
           gradY2 = centerY - ny * (CUBE_SIZE / 2);
         } else {
-          // Default soft top-down ambient light
           gradX1 = drawX;
           gradY1 = drawY;
           gradX2 = drawX;
           gradY2 = drawY + CUBE_SIZE;
         }
 
-        // Draw translucent glass cube
-        drawRoundRect(drawX, drawY, CUBE_SIZE, CUBE_SIZE, 20); // Softer, rounder feel
+        drawRoundRect(drawX, drawY, CUBE_SIZE, CUBE_SIZE, 20);
 
         const fillGradient = ctx.createLinearGradient(gradX1, gradY1, gradX2, gradY2);
 
-        // Density drives translucency (ghost cubes vs thick cubes)
         const baseAlpha = 0.01 + cell.density * 0.08;
         const glowAlpha = 0.1 + cell.density * 0.25;
 
-        // Face nearest to light gets more opacity/color
         fillGradient.addColorStop(0, `rgba(${finalR}, ${finalG}, ${finalB}, ${baseAlpha + glow * glowAlpha})`);
         fillGradient.addColorStop(1, `rgba(${finalR}, ${finalG}, ${finalB}, ${baseAlpha * 0.2 + glow * glowAlpha * 0.2})`);
 
         ctx.fillStyle = fillGradient;
         ctx.fill();
 
-        // 5. Edge Illumination (Directional Rim Light)
         const strokeGradient = ctx.createLinearGradient(gradX1, gradY1, gradX2, gradY2);
 
         const edgeBase = 0.01 + cell.density * 0.03;
         const edgeGlowMultiplier = 0.08 + cell.density * 0.15;
 
-        strokeGradient.addColorStop(0, `rgba(255, 255, 255, ${edgeBase + glow * edgeGlowMultiplier})`); // Softer catch light
-        strokeGradient.addColorStop(1, `rgba(255, 255, 255, ${edgeBase * 0.2 + glow * edgeGlowMultiplier * 0.2})`); // Shadow side
+        strokeGradient.addColorStop(0, `rgba(255, 255, 255, ${edgeBase + glow * edgeGlowMultiplier})`);
+        strokeGradient.addColorStop(1, `rgba(255, 255, 255, ${edgeBase * 0.2 + glow * edgeGlowMultiplier * 0.2})`);
 
         ctx.strokeStyle = strokeGradient;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
 
-      animationFrameId = requestAnimationFrame(render);
+      animFrameRef.current = requestAnimationFrame(render);
     };
 
     render();
 
     return () => {
+      observer.disconnect();
+      cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
-      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
@@ -393,10 +417,10 @@ function Monitor() {
     <div className="relative mx-auto max-w-md">
       <p className="mb-2 font-pixel text-[8px] text-mouse-gray">THE RESEARCHER v1.0</p>
       <div
-        className="rounded-[8px] border-[3px] border-[#4A3A6A] bg-[#2A2040] p-3"
+        className="rounded-[8px] border-[3px] border-[#4A3A6A] bg-[#2A2040] p-3 monitor-frame transition-colors duration-400"
         style={{ boxShadow: "0 0 40px rgba(123,111,255,0.10), 0 20px 0 #1A1030" }}
       >
-        <div className="aspect-[4/3] overflow-hidden bg-black">
+        <div className="aspect-[4/3] overflow-hidden bg-black monitor-screen transition-colors duration-400">
           <AgentStateTerminal stream={DEMO_STREAM} isStreaming={true} loop height={320} speedMs={26} />
         </div>
       </div>

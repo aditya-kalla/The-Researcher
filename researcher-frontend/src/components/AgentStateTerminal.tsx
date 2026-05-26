@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentStreamEntry, ResearchResponse } from "@/lib/types";
 
 const AGENT_COLORS: Record<string, string> = {
-  electric: "#7B6FFF",
-  lime: "#D4F87A",
-  periwinkle: "#A8B4FF",
-  cream: "#F5EDD3",
-  sakura: "#FFB7C5",
+  electric: "var(--accent-primary)",
+  lime: "var(--accent-signal)",
+  sakura: "var(--accent-alert)",
+  periwinkle: "var(--accent-secondary)",
+  cream: "var(--text-primary)",
+  mono: "var(--text-mono)",
 };
 
 const SPINNER = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"];

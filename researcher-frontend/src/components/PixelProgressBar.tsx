@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 type Color = "electric" | "lime" | "sakura" | "periwinkle" | "cream";
 
 const COLORS: Record<Color, string> = {
-  electric: "#7B6FFF",
-  lime: "#D4F87A",
-  sakura: "#FFB7C5",
-  periwinkle: "#A8B4FF",
-  cream: "#F5EDD3",
+  electric: "var(--accent-primary)",
+  lime: "var(--accent-signal)",
+  sakura: "var(--accent-alert)",
+  periwinkle: "var(--accent-secondary)",
+  cream: "var(--text-primary)",
 };
 
 const HEIGHTS = { sm: 8, md: 12, lg: 16 } as const;

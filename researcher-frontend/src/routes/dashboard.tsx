@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
 import { callResearchAPI } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { auth } from "@/lib/firebase";
+import { saveSession, updateAnnotations } from "@/lib/firestore";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { RightPanel } from "@/components/RightPanel";
 import { QueryInput } from "@/components/QueryInput";
@@ -17,6 +19,8 @@ import { PDFExportModal } from "@/components/PDFExportModal";
 import { SpecialPanelModal } from "@/components/SpecialPanels";
 import { SourceVaultDrawer } from "@/components/SourceVaultDrawer";
 import type { ResearchResponse, ResearchSession, SpecialResponse } from "@/lib/types";
+import { useRef } from "react";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -208,6 +212,8 @@ function DashboardPage() {
     sourceVaultOpen,
     setSourceVaultOpen,
     setActiveVaultSource,
+    annotations,
+    setAnnotations,
   } = useStore();
 
   // Trigger boot sequence when first entering the dashboard
@@ -229,6 +235,50 @@ function DashboardPage() {
   const current = sessions.find((s) => s.id === currentSessionId);
   const activeData = researchData ?? current?.researchData ?? null;
   const dashboardReady = !!activeData && (!showStream || streamComplete);
+
+  const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const toggleBookmark = (claim: string) => {
+    const isBookmarked = annotations.bookmarkedClaims.includes(claim);
+    const newClaims = isBookmarked 
+      ? annotations.bookmarkedClaims.filter(c => c !== claim)
+      : [...annotations.bookmarkedClaims, claim];
+    
+    const newAnnotations = { ...annotations, bookmarkedClaims: newClaims };
+    setAnnotations(newAnnotations);
+    
+    if (user && currentSessionId) {
+      updateAnnotations(user.id, currentSessionId, newAnnotations);
+    }
+  };
+
+  const handleRatingChange = (rating: number) => {
+    const newAnnotations = { ...annotations, rating };
+    setAnnotations(newAnnotations);
+    if (user && currentSessionId) {
+      updateAnnotations(user.id, currentSessionId, newAnnotations);
+    }
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setAnnotations({ ...annotations, notes: val });
+    
+    if (notesTimeoutRef.current) clearTimeout(notesTimeoutRef.current);
+    notesTimeoutRef.current = setTimeout(() => {
+      if (user && currentSessionId) {
+        updateAnnotations(user.id, currentSessionId, { ...annotations, notes: val });
+      }
+    }, 500);
+  };
+
+  const handleNotesBlur = () => {
+    // optional: flush immediately
+    if (notesTimeoutRef.current) clearTimeout(notesTimeoutRef.current);
+    if (user && currentSessionId) {
+      updateAnnotations(user.id, currentSessionId, annotations);
+    }
+  };
 
   const runResearch = async (
     topic: string, 
@@ -269,6 +319,24 @@ function DashboardPage() {
       setResearchData(data);
       setPendingSession(session);
       setIsBooting(false);
+
+      // Firestore save
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        try {
+          await saveSession(firebaseUser.uid, {
+            id: session.id,
+            topic: session.topic,
+            level: session.level,
+            lengthMode: session.lengthMode,
+            filters: filters ?? {},
+            researchResponse: data,
+          });
+          console.log('[Firestore] Session saved successfully');
+        } catch (e) {
+          console.error('[Firestore] Save failed:', e);
+        }
+      }
     } catch {
       setIsResearching(false);
       setShowStream(false);
@@ -345,11 +413,11 @@ function DashboardPage() {
         {isBooting && <ObservatoryOverlay />}
       </AnimatePresence>
       {/* TOP NAV */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-pixel-border bg-[#0A0C18] px-3">
-        <div className="flex items-center gap-2">
+      <header className="flex h-[52px] shrink-0 items-center justify-between border-b border-pixel-border bg-session-dark px-5">
+        <div className="flex items-center gap-3">
           <button
             onClick={toggleSidebar}
-            className="font-pixel text-[10px] text-mouse-gray hover:text-mono-white"
+            className="font-pixel text-[11px] text-mouse-gray hover:text-mono-white"
             title="Toggle sidebar"
           >
             {sidebarCollapsed ? "▷" : "◁"}
@@ -371,18 +439,19 @@ function DashboardPage() {
               <rect x="10" y="12" width="2" height="8" fill="#7B6FFF" />
               <rect x="20" y="12" width="2" height="8" fill="#7B6FFF" />
             </svg>
-            <span className="font-pixel text-[11px] text-cream-terminal">THE RESEARCHER</span>
+            <span className="font-pixel text-[12px] text-cream-terminal">THE RESEARCHER</span>
           </a>
         </div>
-        <div className="font-mono text-[12px] text-periwinkle-soft">
+        <div className="font-mono text-[13px] text-periwinkle-soft">
           {current?.title ?? "Untitled Session"}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
+          <ThemeSwitcher />
           {activeData && (
             <button
               onClick={() => setShowExportModal(true)}
               title="Export research as PDF"
-              className="font-pixel text-[12px] text-periwinkle-soft hover:text-cream-terminal"
+              className="font-pixel text-[13px] text-periwinkle-soft hover:text-cream-terminal"
             >
               📄
             </button>
@@ -393,7 +462,7 @@ function DashboardPage() {
                 setSourceVaultOpen(!sourceVaultOpen);
                 if (sourceVaultOpen) setActiveVaultSource(null);
               }}
-              className={`border px-3 py-1.5 font-pixel text-[8px] transition-all duration-200 ${
+              className={`border px-3 py-1.5 font-pixel text-[9px] tracking-widest transition-all duration-200 ${
                 sourceVaultOpen
                   ? "border-electric-accent/50 bg-electric-accent/[0.08] text-electric-accent"
                   : "border-pixel-border text-mouse-gray hover:text-cream-terminal hover:border-cream-terminal/40"
@@ -404,17 +473,17 @@ function DashboardPage() {
           )}
           <a
             href="/settings"
-            className="font-pixel text-[8px] tracking-wider text-mouse-gray hover:text-cream-terminal"
+            className="font-pixel text-[9px] tracking-[0.15em] text-mouse-gray hover:text-cream-terminal ml-1"
           >
             SETTINGS
           </a>
-          <span className="font-mono text-[11px] text-periwinkle-soft">{user?.username}</span>
-          <div className="flex h-7 w-7 items-center justify-center bg-electric-accent font-pixel text-[8px] text-black">
+          <span className="font-mono text-[12px] text-periwinkle-soft ml-1">{user?.username}</span>
+          <div className="flex h-8 w-8 items-center justify-center bg-electric-accent font-pixel text-[9px] text-black">
             {user?.username.slice(0, 2).toUpperCase()}
           </div>
           <button
             onClick={toggleRightPanel}
-            className="font-pixel text-[10px] text-mouse-gray hover:text-mono-white"
+            className="font-pixel text-[11px] text-mouse-gray hover:text-mono-white"
             title="Toggle right panel"
           >
             {rightPanelCollapsed ? "◁" : "▷"}
@@ -494,6 +563,8 @@ function DashboardPage() {
                       onExport={() => setShowExportModal(true)}
                       onExpandGap={(id) => runCommand(`expand_gap:${id}`)}
                       onAnalogyDetail={() => runCommand("analogy_detail")}
+                      annotations={annotations}
+                      onToggleBookmark={toggleBookmark}
                     />
                     <div className="flex flex-wrap gap-2 pt-2">
                       <button
@@ -517,6 +588,61 @@ function DashboardPage() {
                     >
                       ▶ EXPORT RESEARCH PDF
                     </button>
+
+                    <div className="mt-8 border border-pixel-border/40 bg-black/20 p-1">
+                      <RetroWindow title="SESSION_NOTES.txt">
+                        <div className="space-y-4 px-2 pb-2">
+                          {/* Rating Row */}
+                          <div className="mt-2">
+                            <p className="font-pixel text-[7px] text-mouse-gray mb-1.5">RATE THIS SESSION</p>
+                            <div className="flex gap-1.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  onClick={() => handleRatingChange(star)}
+                                  className={`font-pixel text-[12px] transition-colors ${
+                                    star <= annotations.rating
+                                      ? "text-lime-signal"
+                                      : "text-mouse-gray/30 hover:text-mouse-gray/60"
+                                  }`}
+                                >
+                                  ◆
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Notes Textarea */}
+                          <div>
+                            <p className="font-pixel text-[7px] text-mouse-gray mb-1.5">RESEARCH NOTES</p>
+                            <textarea
+                              value={annotations.notes}
+                              onChange={handleNotesChange}
+                              onBlur={handleNotesBlur}
+                              placeholder="Add notes, observations, or follow-up questions..."
+                              className="bg-black/40 border border-pixel-border/50 rounded-none font-mono text-[12px] text-cream-terminal/80 w-full h-28 p-2.5 resize-none focus:border-cream-terminal/40 focus:outline-none transition-colors caret-electric-accent placeholder-mouse-gray/30"
+                            />
+                          </div>
+
+                          {/* Bookmarked Claims */}
+                          {annotations.bookmarkedClaims.length > 0 && (
+                            <div>
+                              <p className="font-pixel text-[7px] text-electric-accent mb-1.5">BOOKMARKED CLAIMS</p>
+                              <div className="space-y-1">
+                                {annotations.bookmarkedClaims.map((claimId, idx) => {
+                                  const fullClaim = activeData?.dashboard.key_claims.find(c => c.claim.slice(0, 60) === claimId)?.claim || claimId;
+                                  return (
+                                    <div key={idx} className="font-mono text-[10px] text-cream-terminal/80 border-l-2 border-electric-accent/40 pl-2 py-0.5 leading-snug">
+                                      {fullClaim}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </RetroWindow>
+                    </div>
                   </>
                 )}
 

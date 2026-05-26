@@ -6,10 +6,10 @@ const CAT_STYLE: Record<
   ResearchResponse["frontier_cards"][number]["category"],
   { bar: string; text: string; border: string; label: string }
 > = {
-  FOUNDATION: { bar: "#F5EDD3", text: "#0D0F1A", border: "#0D0F1A", label: "FOUNDATION" },
-  FRONTIER: { bar: "#7B6FFF", text: "#000000", border: "#7B6FFF", label: "FRONTIER" },
-  WILDCARD: { bar: "#D4F87A", text: "#000000", border: "#D4F87A", label: "WILDCARD" },
-  HARDWARE_BRIDGE: { bar: "#FFB7C5", text: "#0D0F1A", border: "#FFB7C5", label: "HARDWARE" },
+  FOUNDATION: { bar: "var(--text-primary)", text: "var(--bg-primary)", border: "var(--border-secondary)", label: "FOUNDATION" },
+  FRONTIER: { bar: "var(--accent-primary)", text: "var(--bg-primary)", border: "var(--accent-primary)", label: "FRONTIER" },
+  WILDCARD: { bar: "var(--accent-signal)", text: "var(--bg-primary)", border: "var(--accent-signal)", label: "WILDCARD" },
+  HARDWARE_BRIDGE: { bar: "var(--accent-alert)", text: "var(--bg-primary)", border: "var(--accent-alert)", label: "HARDWARE" },
 };
 
 export function FrontierCard({
@@ -22,7 +22,7 @@ export function FrontierCard({
   const s = CAT_STYLE[card.category];
   const isNew = card.year >= 2024;
   return (
-    <motion.div whileHover={{ y: -4, boxShadow: "2px 2px 0 #7B6FFF" }} className="group">
+    <motion.div whileHover={{ y: -4, boxShadow: "2px 2px 0 var(--accent-primary)" }} className="group">
       <RetroWindow
         title={s.label}
         titleBarColor={s.bar}

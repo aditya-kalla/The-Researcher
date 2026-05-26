@@ -7,15 +7,22 @@ import type { ResearchResponse } from "@/lib/types";
 function sanitizeEquation(eq: string) {
   if (!eq) return "";
   let s = eq;
-  // Fix malformed escape sequence \f mapped to form feed + rac -> \frac
   s = s.replace(/\x0Crac/g, "\\frac");
   s = s.replace(/\f/g, "\\f");
   s = s.replace(/\n/g, "");
   s = s.replace(/\r/g, "");
-  // Strip $$ delimiters
   s = s.replace(/\$\$/g, "");
-  // Ensure basic math commands are preserved
   return s.trim();
+}
+
+function safeLatexText(t: string | undefined | null) {
+  if (t === undefined || t === null || t === "") return "No data available.";
+  return t.replace(/([_%&#$])/g, "\\$1");
+}
+
+function sanitizeFileName(name: string | undefined | null) {
+  if (!name) return "export";
+  return name.replace(/ /g, "_").replace(/[\\/:*?"<>|]/g, "");
 }
 
 function MathBlock({ math }: { math: string }) {
@@ -76,7 +83,6 @@ export function PDFExportModal({
       return;
     }
 
-    // Inject KaTeX
     if (!document.getElementById("katex-css")) {
       const link = document.createElement("link");
       link.id = "katex-css";
@@ -107,41 +113,45 @@ export function PDFExportModal({
 
   const generateLatexStr = () => {
     if (!data) return "";
+    
+    const ts = data.session?.timestamp ? new Date(data.session.timestamp).toLocaleString() : "Unknown Date";
+
     return `\\documentclass{article}
 \\usepackage{amsmath}
 \\usepackage{amssymb}
 \\usepackage{physics}
-\\title{${data.session.topic}}
-\\author{THE RESEARCHER — AI Council}
-\\date{${new Date(data.session.timestamp).toLocaleString()}}
+\\title{${safeLatexText(data.session?.topic)}}
+\\author{THE RESEARCHER --- AI Council}
+\\date{${safeLatexText(ts)}}
 \\begin{document}
 \\maketitle
 \\section{Executive Summary}
-${data.dashboard.executive_summary.text}
+${safeLatexText(data.dashboard?.executive_summary?.text)}
 
 \\section{Core Mechanisms}
-${data.dashboard.core_mechanisms.text}
+${safeLatexText(data.dashboard?.core_mechanisms?.text)}
 
-${data.dashboard.core_mechanisms.equations.map(eq => `\\begin{equation}\n${sanitizeEquation(eq)}\n\\end{equation}`).join('\n\n')}
+${data.dashboard?.core_mechanisms?.equations?.map((eq: string) => `\\begin{equation}\n${sanitizeEquation(eq)}\n\\end{equation}`).join('\n\n') || ""}
 
 \\section{Key Claims}
 \\begin{itemize}
-${data.dashboard.key_claims.map(c => `\\item ${c.claim} (Confidence: ${c.confidence}\\%)`).join('\n')}
+${data.dashboard?.key_claims?.map((c: any) => `\\item ${safeLatexText(c.claim)} (Confidence: ${c.confidence}\\%)`).join('\n') || "\\item No data available."}
 \\end{itemize}
 
 \\section{Research Gaps}
 \\begin{enumerate}
-${data.dashboard.research_gaps.map(g => `\\item ${g.gap}`).join('\n')}
+${data.dashboard?.research_gaps?.map((g: any) => `\\item ${safeLatexText(g.gap)}`).join('\n') || "\\item No data available."}
 \\end{enumerate}
 \\end{document}`;
   };
 
   const downloadLatex = () => {
+    if (!data) return;
     const blob = new Blob([generateLatexStr()], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${data?.session.topic.replace(/[^a-z0-9]/gi, "_") || "export"}.tex`;
+    a.download = `${sanitizeFileName(data.session?.topic)}.tex`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -149,20 +159,24 @@ ${data.dashboard.research_gaps.map(g => `\\item ${g.gap}`).join('\n')}
   const downloadWord = () => {
     if (!data) return;
     // TODO: Integrate docx library for real .docx generation
-    const textContent = `TITLE: ${data.session.topic}\nAUTHOR: THE RESEARCHER — AI Council\nDATE: ${new Date(data.session.timestamp).toLocaleString()}\n\n=== EXECUTIVE SUMMARY ===\n${data.dashboard.executive_summary.text}\n\n=== CORE MECHANISMS ===\n${data.dashboard.core_mechanisms.text}\n\n${data.dashboard.core_mechanisms.equations.map(eq => sanitizeEquation(eq)).join('\n\n')}\n\n=== KEY CLAIMS ===\n${data.dashboard.key_claims.map(c => `- ${c.claim} (Confidence: ${c.confidence}%)`).join('\n')}\n\n=== RESEARCH GAPS ===\n${data.dashboard.research_gaps.map((g, i) => `${i + 1}. ${g.gap}`).join('\n')}`;
+    const ts = data.session?.timestamp ? new Date(data.session.timestamp).toLocaleString() : "Unknown Date";
+    
+    const textContent = `TITLE: ${data.session?.topic || "Untitled"}\nAUTHOR: THE RESEARCHER — AI Council\nDATE: ${ts}\n\n=== EXECUTIVE SUMMARY ===\n${data.dashboard?.executive_summary?.text || "No data available."}\n\n=== CORE MECHANISMS ===\n${data.dashboard?.core_mechanisms?.text || "No data available."}\n\n${(data.dashboard?.core_mechanisms?.equations || []).map((eq: string) => sanitizeEquation(eq)).join('\n\n')}\n\n=== KEY CLAIMS ===\n${(data.dashboard?.key_claims || []).map((c: any) => `- ${c.claim} (Confidence: ${c.confidence}%)`).join('\n') || "No data available."}\n\n=== RESEARCH GAPS ===\n${(data.dashboard?.research_gaps || []).map((g: any, i: number) => `${i + 1}. ${g.gap}`).join('\n') || "No data available."}`;
 
     const blob = new Blob([textContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${data.session.topic.replace(/[^a-z0-9]/gi, "_")}.docx`;
+    a.download = `${sanitizeFileName(data.session?.topic)}.docx`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
+  const isDataIncomplete = !data || !data.dashboard;
+
   return (
     <AnimatePresence>
-      {open && data && (
+      {open && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -178,17 +192,18 @@ ${data.dashboard.research_gaps.map(g => `\\item ${g.gap}`).join('\n')}
             onClick={(e) => e.stopPropagation()}
           >
             <RetroWindow title="EXPORT_SUITE.exe" onClose={onClose} variant="accent">
-              <div className="mb-4 flex gap-4 border-b border-pixel-border px-2">
+              <div className="mb-4 flex gap-4 border-b border-pixel-border/40 px-2 pb-2">
                 {(["pdf", "latex", "docx"] as const).map((f) => {
                   const label = f === "pdf" ? "◼ PDF" : f === "latex" ? "∑ LaTeX" : "W WORD (.docx)";
                   return (
                     <button
                       key={f}
                       onClick={() => setExportFormat(f)}
-                      className={`-mb-px border-b-2 pb-2 pt-2 font-pixel text-[8px] transition-colors ${exportFormat === f
-                          ? "border-electric-accent text-electric-accent"
-                          : "border-transparent text-mouse-gray hover:text-mono-white"
-                        }`}
+                      className={`-mb-[9px] border-b-2 pb-2 pt-2 font-pixel text-[8px] transition-all duration-150 ${
+                        exportFormat === f
+                          ? "border-electric-accent text-electric-accent opacity-100"
+                          : "border-transparent text-mouse-gray/70 hover:text-cream-terminal opacity-80"
+                      }`}
                     >
                       {label}
                     </button>
@@ -196,75 +211,85 @@ ${data.dashboard.research_gaps.map(g => `\\item ${g.gap}`).join('\n')}
                 })}
               </div>
 
-              {exportFormat === "pdf" && (
-                <div className="max-h-[68vh] overflow-y-auto bg-mono-white p-8 text-research-navy font-serif leading-relaxed">
-                  <p className="font-pixel text-[10px] tracking-wider text-electric-accent font-sans">◆ THE RESEARCHER</p>
-                  <h1 className="mt-4 text-3xl font-bold">{data.session.topic}</h1>
-                  <p className="mt-2 font-mono text-[11px] text-mouse-gray">
-                    L{data.session.level} · {data.session.level_name} · {new Date(data.session.timestamp).toLocaleString()}
-                  </p>
-                  <hr className="my-6 border-research-navy/20" />
-                  <Section title="EXECUTIVE SUMMARY" body={data.dashboard.executive_summary.text} />
-
-                  <section className="mt-6 page-break-inside-avoid">
-                    <h2 className="font-pixel text-[10px] text-electric-accent font-sans tracking-widest">CORE MECHANISMS</h2>
-                    <p className="mt-3 whitespace-pre-line text-[14px]">
-                      {data.dashboard.core_mechanisms.text}
-                    </p>
-                    {data.dashboard.core_mechanisms.equations.length > 0 && (
-                      <div className="mt-5 space-y-5">
-                        {data.dashboard.core_mechanisms.equations.map((eq, i) => (
-                          <MathBlock key={i} math={eq} />
-                        ))}
-                      </div>
-                    )}
-                  </section>
-
-                  <Section
-                    title="KEY CLAIMS"
-                    body={data.dashboard.key_claims.map((c) => `• ${c.claim} [${c.confidence}%]`).join("\n\n")}
-                  />
-                  <Section
-                    title="EPISTEMIC DECAY"
-                    body={[
-                      ...data.dashboard.epistemic_decay.stale.map(
-                        (s) => `Stale: ${s.claim} — superseded by ${s.superseded_by}`
-                      ),
-                      ...data.dashboard.epistemic_decay.fresh.map((f) => `Fresh: ${f.claim}`),
-                    ].join("\n\n")}
-                  />
-                  <Section
-                    title="CROSS DOMAIN LINK"
-                    body={`${data.dashboard.cross_domain_analogy.domain_a} ↔ ${data.dashboard.cross_domain_analogy.domain_b}\n\n${data.dashboard.cross_domain_analogy.structural_isomorphism}\n\nTransferable technique: ${data.dashboard.cross_domain_analogy.transferable_technique}`}
-                  />
-                  <Section
-                    title="RESEARCH GAPS"
-                    body={data.dashboard.research_gaps.map((g) => `${g.type}: ${g.gap}`).join("\n\n")}
-                  />
-                  {data.dashboard.novel_hypothesis && (
-                    <Section title="NOVEL HYPOTHESIS" body={data.dashboard.novel_hypothesis} />
-                  )}
-                  <Section
-                    title="COUNCIL CONSENSUS"
-                    body={`Advocate score: ${data.council_consensus.advocate_score}\nEmpirical strength: ${data.council_consensus.empirical_strength}\nFinal confidence: ${data.council_consensus.final_confidence}\n\nCaveat: ${data.council_consensus.key_caveat}`}
-                  />
-                </div>
-              )}
-
-              {exportFormat === "latex" && (
-                <div className="max-h-[300px] overflow-auto bg-black border border-pixel-border p-4 font-mono text-[11px] text-lime-signal">
-                  <pre className="whitespace-pre-wrap">{generateLatexStr()}</pre>
-                </div>
-              )}
-
-              {exportFormat === "docx" && (
+              {isDataIncomplete ? (
                 <div className="border border-pixel-border bg-black/30 p-6 text-center">
-                  <div className="font-pixel text-[24px] text-periwinkle-soft">W</div>
-                  <h3 className="mt-2 font-pixel text-[10px] text-cream-terminal">WORD EXPORT</h3>
-                  <p className="mt-2 font-mono text-[11px] text-mouse-gray">
-                    Generates a structured .docx with all research sections, formatted for academic submission.
-                  </p>
+                  <p className="font-mono text-[11px] text-sakura-alert">Research data incomplete.</p>
                 </div>
+              ) : (
+                <>
+                  {exportFormat === "pdf" && (
+                    <div className="max-h-[68vh] overflow-y-auto bg-mono-white p-8 text-research-navy font-serif leading-relaxed">
+                      <p className="font-pixel text-[10px] tracking-wider text-electric-accent font-sans">◆ THE RESEARCHER</p>
+                      <h1 className="mt-4 text-3xl font-bold">{data.session.topic}</h1>
+                      <p className="mt-2 font-mono text-[11px] text-mouse-gray">
+                        L{data.session.level} · {data.session.level_name} · {new Date(data.session.timestamp).toLocaleString()}
+                      </p>
+                      <hr className="my-6 border-research-navy/20" />
+                      <Section title="EXECUTIVE SUMMARY" body={data.dashboard.executive_summary.text} />
+
+                      <section className="mt-6 page-break-inside-avoid">
+                        <h2 className="font-pixel text-[10px] text-electric-accent font-sans tracking-widest">CORE MECHANISMS</h2>
+                        <p className="mt-3 whitespace-pre-line text-[14px]">
+                          {data.dashboard.core_mechanisms.text}
+                        </p>
+                        {(data.dashboard.core_mechanisms.equations || []).length > 0 && (
+                          <div className="mt-5 space-y-5">
+                            {data.dashboard.core_mechanisms.equations.map((eq: string, i: number) => (
+                              <MathBlock key={i} math={eq} />
+                            ))}
+                          </div>
+                        )}
+                      </section>
+
+                      <Section
+                        title="KEY CLAIMS"
+                        body={(data.dashboard.key_claims || []).map((c: any) => `• ${c.claim} [${c.confidence}%]`).join("\n\n")}
+                      />
+                      <Section
+                        title="EPISTEMIC DECAY"
+                        body={[
+                          ...(data.dashboard.epistemic_decay?.stale || []).map(
+                            (s: any) => `Stale: ${s.claim} — superseded by ${s.superseded_by}`
+                          ),
+                          ...(data.dashboard.epistemic_decay?.fresh || []).map((f: any) => `Fresh: ${f.claim}`),
+                        ].join("\n\n")}
+                      />
+                      <Section
+                        title="CROSS DOMAIN LINK"
+                        body={data.dashboard.cross_domain_analogy ? `${data.dashboard.cross_domain_analogy.domain_a} ↔ ${data.dashboard.cross_domain_analogy.domain_b}\n\n${data.dashboard.cross_domain_analogy.structural_isomorphism}\n\nTransferable technique: ${data.dashboard.cross_domain_analogy.transferable_technique}` : "No data available."}
+                      />
+                      <Section
+                        title="RESEARCH GAPS"
+                        body={(data.dashboard.research_gaps || []).map((g: any) => `${g.type}: ${g.gap}`).join("\n\n")}
+                      />
+                      {data.dashboard.novel_hypothesis && (
+                        <Section title="NOVEL HYPOTHESIS" body={data.dashboard.novel_hypothesis} />
+                      )}
+                      {data.council_consensus && (
+                        <Section
+                          title="COUNCIL CONSENSUS"
+                          body={`Advocate score: ${data.council_consensus.advocate_score}\nEmpirical strength: ${data.council_consensus.empirical_strength}\nFinal confidence: ${data.council_consensus.final_confidence}\n\nCaveat: ${data.council_consensus.key_caveat}`}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {exportFormat === "latex" && (
+                    <div className="max-h-[300px] overflow-auto bg-black/90 border border-pixel-border p-4 font-mono text-[11px] text-lime-signal rounded-none leading-relaxed">
+                      <pre className="whitespace-pre-wrap">{generateLatexStr()}</pre>
+                    </div>
+                  )}
+
+                  {exportFormat === "docx" && (
+                    <div className="border border-pixel-border bg-black/30 p-6 text-center">
+                      <div className="font-pixel text-[24px] text-mouse-gray/40">W</div>
+                      <h3 className="mt-2 font-pixel text-[10px] text-mouse-gray">WORD EXPORT</h3>
+                      <p className="mt-2 font-mono text-[11px] text-mouse-gray/60 leading-relaxed">
+                        Generates a structured .docx with all research sections, formatted for academic submission.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="mt-4 space-y-3">
@@ -277,34 +302,39 @@ ${data.dashboard.research_gaps.map(g => `\\item ${g.gap}`).join('\n')}
                 <div className="flex gap-2">
                   {exportFormat === "pdf" && (
                     <button
-                      disabled={!done}
-                      onClick={() => window.print()}
-                      className="flex-1 border-2 border-black bg-electric-accent py-2.5 font-pixel text-[10px] text-black shadow-[3px_3px_0_#000] disabled:opacity-50"
+                      disabled={!done || isDataIncomplete}
+                      onClick={() => {
+                        const old = document.title;
+                        document.title = sanitizeFileName(data?.session?.topic);
+                        window.print();
+                        document.title = old;
+                      }}
+                      className="flex-1 border border-pixel-border bg-black py-2.5 font-pixel text-[9px] text-mono-white transition-colors hover:border-mouse-gray disabled:opacity-50"
                     >
                       ▶ DOWNLOAD PDF
                     </button>
                   )}
                   {exportFormat === "latex" && (
                     <button
-                      disabled={!done}
+                      disabled={!done || isDataIncomplete}
                       onClick={downloadLatex}
-                      className="flex-1 border-2 border-black bg-electric-accent py-2.5 font-pixel text-[10px] text-black shadow-[3px_3px_0_#000] disabled:opacity-50"
+                      className="flex-1 border border-pixel-border bg-black py-2.5 font-pixel text-[9px] text-mono-white transition-colors hover:border-mouse-gray disabled:opacity-50"
                     >
                       ▶ DOWNLOAD .tex FILE
                     </button>
                   )}
                   {exportFormat === "docx" && (
                     <button
-                      disabled={!done}
+                      disabled={!done || isDataIncomplete}
                       onClick={downloadWord}
-                      className="flex-1 border-2 border-black bg-electric-accent py-2.5 font-pixel text-[10px] text-black shadow-[3px_3px_0_#000] disabled:opacity-50"
+                      className="flex-1 border border-pixel-border bg-black py-2.5 font-pixel text-[9px] text-mono-white transition-colors hover:border-mouse-gray disabled:opacity-50"
                     >
                       ▶ DOWNLOAD .docx
                     </button>
                   )}
                   <button
                     onClick={onClose}
-                    className="border border-mouse-gray px-4 py-2.5 font-pixel text-[9px] text-mouse-gray hover:bg-white/5"
+                    className="border border-pixel-border bg-black px-4 py-2.5 font-pixel text-[9px] text-mouse-gray transition-colors hover:border-mouse-gray hover:text-mono-white"
                   >
                     CANCEL
                   </button>
@@ -319,6 +349,7 @@ ${data.dashboard.research_gaps.map(g => `\\item ${g.gap}`).join('\n')}
 }
 
 function Section({ title, body }: { title: string; body: string }) {
+  if (!body) return null;
   return (
     <section className="mt-6 page-break-inside-avoid">
       <h2 className="font-pixel text-[10px] text-electric-accent font-sans tracking-widest">{title}</h2>

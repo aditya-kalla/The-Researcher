@@ -10,29 +10,29 @@ const CATEGORY_STYLES: Record<
   { color: string; borderColor: string; backgroundColor: string }
 > = {
   FOUNDATION: {
-    color: "var(--color-periwinkle-soft)",
-    borderColor: "rgba(168, 180, 255, 0.3)",
-    backgroundColor: "rgba(168, 180, 255, 0.15)",
+    color: "var(--text-primary)",
+    borderColor: "var(--border-primary)",
+    backgroundColor: "var(--bg-hover)",
   },
   EMPIRICAL: {
-    color: "var(--color-lime-signal)",
-    borderColor: "rgba(212, 248, 122, 0.3)",
-    backgroundColor: "rgba(212, 248, 122, 0.1)",
+    color: "var(--accent-signal)",
+    borderColor: "var(--border-primary)",
+    backgroundColor: "var(--bg-hover)",
   },
   METHODOLOGY: {
-    color: "var(--color-cream-terminal)",
-    borderColor: "rgba(245, 237, 211, 0.3)",
-    backgroundColor: "rgba(245, 237, 211, 0.1)",
+    color: "var(--text-mono)",
+    borderColor: "var(--border-primary)",
+    backgroundColor: "var(--bg-hover)",
   },
   REVIEW: {
-    color: "var(--color-sakura-alert)",
-    borderColor: "rgba(255, 183, 197, 0.3)",
-    backgroundColor: "rgba(255, 183, 197, 0.1)",
+    color: "var(--accent-alert)",
+    borderColor: "var(--border-primary)",
+    backgroundColor: "var(--bg-hover)",
   },
   FRONTIER: {
-    color: "var(--color-electric-accent)",
-    borderColor: "rgba(123, 111, 255, 0.3)",
-    backgroundColor: "rgba(123, 111, 255, 0.15)",
+    color: "var(--accent-primary)",
+    borderColor: "var(--border-accent)",
+    backgroundColor: "var(--bg-hover)",
   },
 };
 
@@ -192,9 +192,9 @@ function SourceListItem({
       onClick={onClick}
       className="cursor-pointer px-3 py-3 transition-colors duration-200 hover:bg-white/[0.03]"
       style={{
-        borderBottom: "1px solid rgba(42,45,74,0.3)",
-        borderLeft: isActive ? "2px solid #7B6FFF" : "2px solid transparent",
-        backgroundColor: isActive ? "rgba(123,111,255,0.08)" : undefined,
+        borderBottom: "1px solid var(--border-primary)",
+        borderLeft: isActive ? "2px solid var(--accent-primary)" : "2px solid transparent",
+        backgroundColor: isActive ? "var(--bg-hover)" : undefined,
       }}
     >
       {/* ROW 1: Category + Year */}
@@ -330,7 +330,7 @@ function SourceDetail({
           </p>
           <div
             className="pl-3"
-            style={{ borderLeft: "2px solid rgba(123,111,255,0.4)" }}
+            style={{ borderLeft: "2px solid var(--border-accent)" }}
           >
             <p className="font-mono text-[11px] italic leading-relaxed text-cream-terminal/80">
               {source.relevance_note}

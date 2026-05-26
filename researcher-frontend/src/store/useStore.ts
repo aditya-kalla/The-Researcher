@@ -10,9 +10,16 @@ interface AppState {
 
   sessions: ResearchSession[];
   currentSessionId: string | null;
-  sessionsLoading?: boolean;
-  loadSessions?: () => Promise<void>;
-  deleteSession: (id: string) => void;
+  
+  sessionsLoading: boolean;
+  sessionHydrationLoading: boolean;
+  sessionDeleteLoading: boolean;
+  sessionSaveLoading: boolean;
+  
+  loadSessions: () => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  saveCurrentSession: (sessionData: any) => Promise<void>;
+  
   addSession: (s: ResearchSession) => void;
   setCurrentSession: (id: string | null) => void;
   updateSession: (id: string, data: Partial<ResearchSession>) => void;
@@ -60,7 +67,20 @@ interface AppState {
   activeVaultSource: ReferencedSource | null;
   setSourceVaultOpen: (open: boolean) => void;
   setActiveVaultSource: (source: ReferencedSource | null) => void;
+
+  annotations: {
+    bookmarkedClaims: string[];
+    notes: string;
+    rating: number;
+  };
+  setAnnotations: (a: any) => void;
+
+  theme: 'observatory' | 'light' | 'dark' | 'neo';
+  setTheme: (theme: 'observatory' | 'light' | 'dark' | 'neo') => void;
+  initTheme: () => void;
 }
+
+import { loadSessions as loadSessionsFromFirestore, deleteSession as deleteSessionFromFirestore } from "@/lib/firestore";
 
 export const useStore = create<AppState>()(
   persist(
@@ -72,12 +92,46 @@ export const useStore = create<AppState>()(
 
       sessions: [],
       currentSessionId: null,
-      deleteSession: (id: string) => {
-        set((st) => ({ 
-          sessions: st.sessions.filter(s => s.id !== id),
-          currentSessionId: st.currentSessionId === id ? null : st.currentSessionId
-        }))
+      
+      sessionsLoading: false,
+      sessionHydrationLoading: false,
+      sessionDeleteLoading: false,
+      sessionSaveLoading: false,
+
+      loadSessions: async () => {
+        const user = useStore.getState().user;
+        if (!user) return;
+        set({ sessionsLoading: true });
+        try {
+          const sessions = await loadSessionsFromFirestore(user.id);
+          set({ sessions: sessions as unknown as ResearchSession[], sessionsLoading: false });
+        } catch(e) {
+          console.warn('[Store] loadSessions failed:', e);
+          set({ sessionsLoading: false });
+        }
       },
+      
+      deleteSession: async (id: string) => {
+        const user = useStore.getState().user;
+        if (!user) return;
+        set({ sessionDeleteLoading: true });
+        try {
+          await deleteSessionFromFirestore(user.id, id);
+          set(st => ({
+            sessions: st.sessions.filter(s => s.id !== id),
+            sessionDeleteLoading: false,
+            currentSessionId: st.currentSessionId === id ? null : st.currentSessionId
+          }));
+        } catch(e) {
+          console.warn('[Store] deleteSession failed:', e);
+          set({ sessionDeleteLoading: false });
+        }
+      },
+      
+      saveCurrentSession: async (sessionData: any) => {
+        // Implemented externally in api.ts as per instructions, but placeholder here
+      },
+
       addSession: (s) => set((st) => ({ sessions: [s, ...st.sessions], currentSessionId: s.id })),
       setCurrentSession: (id) => set({ currentSessionId: id }),
       updateSession: (id, data) =>
@@ -132,6 +186,27 @@ export const useStore = create<AppState>()(
       activeVaultSource: null,
       setSourceVaultOpen: (open) => set({ sourceVaultOpen: open }),
       setActiveVaultSource: (source) => set({ activeVaultSource: source }),
+
+      annotations: { bookmarkedClaims: [], notes: '', rating: 0 },
+      setAnnotations: (a: any) => set({ annotations: a }),
+
+      theme: 'observatory',
+      setTheme: (theme) => {
+        set({ theme })
+        // Apply to DOM immediately
+        document.documentElement.setAttribute('data-theme', theme)
+        // Save to Firestore if user is logged in
+        const user = useStore.getState().user
+        if (user) {
+          import('@/lib/firestore').then(({ updateUserPreference }) => {
+            updateUserPreference(user.id, 'theme', theme)
+          })
+        }
+      },
+      initTheme: () => {
+        const stored = useStore.getState().theme ?? 'observatory'
+        document.documentElement.setAttribute('data-theme', stored)
+      },
     }),
     {
       name: "the-researcher-store",
@@ -140,14 +215,7 @@ export const useStore = create<AppState>()(
         isAuthenticated: s.isAuthenticated,
         defaultLevel: s.defaultLevel,
         defaultLengthMode: s.defaultLengthMode,
-        geminiApiKey: s.geminiApiKey,
-        uploadedSources: s.uploadedSources,
-        dateRangeFilter: s.dateRangeFilter,
-        countryFilter: s.countryFilter,
-        journalRankFilter: s.journalRankFilter,
-        minCitationsFilter: s.minCitationsFilter,
-        sessions: s.sessions,
-        currentSessionId: s.currentSessionId,
+        theme: s.theme,
       }),
     }
   )

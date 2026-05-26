@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/store/useStore";
+import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -274,15 +276,14 @@ function AuthPage() {
     setSuccess(null);
     setLoading(true);
     
-    // Mock sign in
-    setTimeout(() => {
-      useStore.getState().setUser({
-        id: "mock-user-123",
-        email: email,
-        username: email.split("@")[0],
-      });
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged handles Zustand update automatically
       navigate({ to: "/dashboard" });
-    }, 1000);
+    } catch (err: any) {
+      setError(err.message || "Sign in failed");
+      setLoading(false);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -292,23 +293,25 @@ function AuthPage() {
     if (password !== confirm) { setError("Passwords do not match"); return; }
     setLoading(true);
     
-    // Mock sign up
-    setTimeout(() => {
-      setSuccess("CONFIRMATION DISPATCHED — CHECK YOUR EMAIL TO COMPLETE ARCHIVE CLEARANCE");
+    try {
+      const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(user, { displayName: username });
+      navigate({ to: "/dashboard" });
+    } catch (err: any) {
+      setError(err.message || "Registration failed");
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const handleGoogleOAuth = async () => {
     setError(null);
     
-    // Mock Google OAuth
-    useStore.getState().setUser({
-      id: "mock-google-123",
-      email: "researcher@example.com",
-      username: "researcher",
-    });
-    navigate({ to: "/dashboard" });
+    try {
+      await signInWithPopup(auth, googleProvider);
+      navigate({ to: "/dashboard" });
+    } catch (err: any) {
+      setError(err.message || "Google sign in failed");
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -316,10 +319,12 @@ function AuthPage() {
     setSuccess(null);
     if (!email) { setError("Enter your email address first"); return; }
     
-    // Mock reset
-    setTimeout(() => {
-      setSuccess("PASSWORD RESET DISPATCH SENT — CHECK YOUR EMAIL");
-    }, 1000);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess("PASSWORD RESET EMAIL SENT");
+    } catch (err: any) {
+      setError(err.message || "Failed to send reset email");
+    }
   };
 
   const submit = tab === "signin" ? handleSignIn : handleSignUp;

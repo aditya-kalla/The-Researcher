@@ -47,7 +47,7 @@ export function RetroWindow({
   return (
     <div
       className={`group relative border ${v.border} ${className} transition-shadow duration-100 ${
-        hoverShadow ? "hover:shadow-[2px_2px_0_0_#7B6FFF]" : ""
+        hoverShadow ? "hover:shadow-[2px_2px_0_0_var(--accent-primary)]" : ""
       }`}
       style={borderColor ? { borderColor } : undefined}
     >
