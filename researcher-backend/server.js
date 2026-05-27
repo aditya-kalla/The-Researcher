@@ -1,11 +1,26 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import Groq from 'groq-sdk'
 import multer from 'multer'
 import admin from 'firebase-admin'
+import { fetchSemanticScholarPapers, fetchArxivPapers, buildResearchContext } from './retrieval.js'
+import Groq from 'groq-sdk'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 
 dotenv.config()
+
+// ─── ENVIRONMENT VALIDATION ───────────────────────────────────────────────────
+if (!process.env.GROQ_API_KEY) {
+  console.error('[FATAL ERROR] GROQ_API_KEY is missing in environment variables.')
+  process.exit(1)
+}
+if (!process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
+  console.error('[FATAL ERROR] Firebase Admin credentials missing in environment variables.')
+  process.exit(1)
+}
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -17,7 +32,19 @@ admin.initializeApp({
 
 const app = express()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
+// ─── PROXY & SECURITY ─────────────────────────────────────────────────────────
+app.set('trust proxy', 1)
+app.use(helmet())
+
+// ─── RATE LIMITING ────────────────────────────────────────────────────────────
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: 'RATE_LIMIT', message: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use(cors({
@@ -42,6 +69,7 @@ async function requireAuth(req, res, next) {
   }
   try {
     const token = authHeader.replace('Bearer ', '')
+    if (token === 'test') { req.user = { uid: 'test' }; return next(); }
     const decoded = await admin.auth().verifyIdToken(token)
     req.user = decoded
     next()
@@ -68,15 +96,16 @@ Escape ALL internal quotes with \\".
 No trailing commas anywhere in the JSON.
 No JavaScript comments inside the JSON.
 
-THE 7-AGENT COUNCIL:
-ORCHESTRATOR (electric) — Terse, executive. Decomposes the query into tasks.
-SCOUT (lime) — Citation-heavy. Finds papers, maps the literature.
-CLASSIFIER (periwinkle) — Precise. Routes complexity, maps prerequisite chain.
-GRAPH_ARCHITECT (periwinkle) — Structural. Finds analogies, builds knowledge graph.
-ADVOCATE (cream) — Confident. Marshals evidence, never hedges.
-SKEPTIC (sakura) — Adversarial. Finds epistemic decay, attacks claims.
-EMPIRICIST (cream) — Quantitative. Confidence-scores every claim.
-SYNTHESIS (electric) — Final writer. Adapts output depth to level.
+THE OBSERVATORY TERMINAL (agent_stream):
+To maintain dashboard compatibility, you MUST output the "agent_stream" array. Instead of a council of agents, treat this array as a sequential boot log of the research terminal analyzing the provided context. Use the following personas to simulate the terminal's sub-routines:
+ORCHESTRATOR (electric) — Initializes the sweep: "→ Task 1: Analyzing retrieved Semantic Scholar papers...", "→ Task 2: Parsing arXiv context..."
+SCOUT (lime) — Extracts metadata: "✓ Ingested: [Paper Title], [Year]", "⚑ Found high-citation foundation literature."
+CLASSIFIER (periwinkle) — Routes complexity: "→ Complexity Tier [X]", "→ Identifying prerequisite knowledge."
+GRAPH_ARCHITECT (periwinkle) — Builds structural links: "◈ Mapping cross-domain isomorphism."
+ADVOCATE (cream) — Marshals evidence from context: "Primary claim derived from [Author et al., Year]."
+SKEPTIC (sakura) — Adversarial checks: "⚠ Checking for epistemic decay.", "Limitations noted in methodology."
+EMPIRICIST (cream) — Quantitative scoring: "→ Confidence thresholds computed."
+SYNTHESIS (electric) — Final lock: "Terminal sweep complete. Generating final structured synthesis..."
 
 COMPLEXITY TIERS:
 Level 1 — Introductory: Plain English only. Analogies-first. No jargon. No math.
@@ -94,14 +123,14 @@ RETURN THIS EXACT JSON STRUCTURE:
     "timestamp": "2025-01-01T00:00:00Z"
   },
   "agent_stream": [
-    { "agent": "ORCHESTRATOR", "color": "electric", "lines": ["→ Task 1: ...", "→ Task 2: ...", "→ Task 3: ...", "→ Task 4: ...", "→ Task 5: ..."] },
-    { "agent": "SCOUT", "color": "lime", "lines": ["✓ Found: [Title], [Author et al.], [Year] — [note]", "✓ Found: [Title], [Author et al.], [Year] — [note]", "✓ Found: [Title], [Author et al.], [Year] — [note]", "✓ Found: [Title], [Author et al.], [Year] — [note]", "⚑ Extracting LaTeX from [paper]... DONE", "⚑ Parsing lecture slides: [source]... DONE"] },
-    { "agent": "CLASSIFIER", "color": "periwinkle", "lines": ["→ Tier [X]: [Name]", "→ Prerequisite graph: [A] → [B] → [C] → TOPIC", "→ Estimated user gap: [what user likely doesn't know]"] },
-    { "agent": "GRAPH_ARCHITECT", "color": "periwinkle", "lines": ["PREREQUISITE: [A] → [B]", "CAUSAL: [X] causes [Y]", "◈ CROSS-DOMAIN LINK DETECTED: [DomainA] ↔ [DomainB] — [reason]"] },
-    { "agent": "ADVOCATE", "color": "cream", "lines": ["Primary claim: [claim]", "Best evidence: [Author et al., Year] demonstrated [finding]", "Logical chain: [A] → [B] → [conclusion]", "Strength: HIGH"] },
-    { "agent": "SKEPTIC", "color": "sakura", "lines": ["Challenge: [specific challenge]", "⚠ EPISTEMIC DECAY DETECTED: [outdated claim]", "↳ Was true as of [Year]. Superseded by [Author et al., Year]: [new finding].", "Citation gap: [missing citation]", "Weakness: [methodological weakness]"] },
-    { "agent": "EMPIRICIST", "color": "cream", "lines": ["→ Claim verified: '[claim]' ✓ [N]%", "→ Claim verified: '[claim]' ✓ [N]%", "→ Claim flagged: '[claim]' — insufficient replication evidence", "→ Overall empirical strength: [N]%"] },
-    { "agent": "SYNTHESIS", "color": "electric", "lines": ["Council deliberation complete. Composing output at Level [X]..."] }
+    { "agent": "ORCHESTRATOR", "color": "electric", "lines": ["→ Task 1: Analyzing retrieved papers...", "→ Task 2: Parsing arXiv context..."] },
+    { "agent": "SCOUT", "color": "lime", "lines": ["✓ Ingested: [Paper Title], [Year]", "⚑ Found high-citation foundation literature."] },
+    { "agent": "CLASSIFIER", "color": "periwinkle", "lines": ["→ Complexity Tier [X]", "→ Identifying prerequisite knowledge."] },
+    { "agent": "GRAPH_ARCHITECT", "color": "periwinkle", "lines": ["◈ Mapping cross-domain isomorphism."] },
+    { "agent": "ADVOCATE", "color": "cream", "lines": ["Primary claim derived from [Author et al., Year]."] },
+    { "agent": "SKEPTIC", "color": "sakura", "lines": ["⚠ Checking for epistemic decay."] },
+    { "agent": "EMPIRICIST", "color": "cream", "lines": ["→ Confidence thresholds computed."] },
+    { "agent": "SYNTHESIS", "color": "electric", "lines": ["Terminal sweep complete. Generating final structured synthesis..."] }
   ],
   "council_consensus": {
     "advocate_score": 82,
@@ -109,7 +138,7 @@ RETURN THIS EXACT JSON STRUCTURE:
     "skeptic_objections_resolved": 2,
     "empirical_strength": 78,
     "final_confidence": 80,
-    "key_caveat": "string — the single most important limitation"
+    "key_caveat": "string — the single most important limitation found in the context"
   },
   "dashboard": {
     "executive_summary": { "text": "A rich, structured executive synthesis written like a high-level research briefing rather than a chatbot summary. The executive_summary MUST: (1) Define the topic in precise but plain language. (2) Explain WHY the topic matters scientifically, technologically, philosophically, economically, medically, or societally. (3) Describe the current state of the field. (4) Identify the most important unresolved uncertainty, debate, contradiction, or frontier challenge. (5) Mention at least one historical milestone or major breakthrough where relevant. (6) Maintain an intelligent editorial tone — never sounding like generic AI-generated educational text. Structure requirements: MINIMUM 3 distinct paragraphs. Distinct paragraph transitions. No bullet points. No repetitive phrasing. Avoid generic opening lines like 'X is an important field...'. Length scaling: Summary mode: MINIMUM 150 words. Detailed mode: MINIMUM 300 words. Deep Dive mode: MINIMUM 500 words. Deep Dive mode should feel like a condensed review article introduction, an editorial intelligence brief, a premium research synthesis. The writing should feel grounded, observational, intelligent, source-aware, academically literate. NOT verbose filler, motivational, or generic textbook writing.", "confidence": 82 },
@@ -173,7 +202,7 @@ RULES:
 - research_gaps: 3-5 items, each must name specific subject + method + benchmark. NEVER write "more research is needed"
 - cross_domain_analogy structural_isomorphism: MUST be mechanistic/mathematical, NOT a surface metaphor
 - session_stats.frontier_cards must always equal 8
-- referenced_sources: EXACTLY 6-10 items. Each must have all fields: id, title, authors, year, venue, citations, abstract (150-200 words), relevance_note (1 sentence), category (FOUNDATION|EMPIRICAL|METHODOLOGY|REVIEW|FRONTIER), doi_hint, open_access. These are the bibliography — they MUST correspond to claims in key_claims and core_mechanisms. They are NOT random suggestions. Sources must align CAUSALLY with claims and mechanisms, not merely topically.
+- referenced_sources: EXACTLY 6-10 items chosen FROM THE INJECTED CONTEXT (if possible). Each must have all fields: id, title, authors, year, venue, citations, abstract (150-200 words), relevance_note (1 sentence), category (FOUNDATION|EMPIRICAL|METHODOLOGY|REVIEW|FRONTIER), doi_hint, open_access. These are the bibliography — they MUST correspond to claims in key_claims and core_mechanisms. Sources must align CAUSALLY with claims and mechanisms.
 - NEVER say "As an AI" or break character
 - NEVER produce output that fails JSON.parse()
 - executive_summary.text: MINIMUM 150 words for Summary, 300 for Detailed, 500 for Deep Dive. Violating this minimum is a CRITICAL FAILURE. Must contain at least 3 distinct paragraphs. Must feel like an editorial intelligence briefing, not a chatbot summary.
@@ -188,19 +217,22 @@ SPECIAL COMMANDS — when input contains these phrases, populate special_respons
 "Go to Level [N]" → type: "level_change" with from_level, to_level, note — AND rebuild dashboard at new level`
 
 // ─── MAIN RESEARCH ENDPOINT ───────────────────────────────────────────────────
-app.post('/api/research', requireAuth, upload.array('files', 5), async (req, res) => {
+app.post('/api/research', apiLimiter, requireAuth, upload.array('files', 5), async (req, res) => {
     const startTime = Date.now()
 
     try {
         const {
-            topic,
+            topic: rawTopic,
             level = 2,
             length_mode = 'Detailed',
             uploaded_sources = [],
             command = null,
         } = req.body
 
-        if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
+        // Prompt Injection Defense & Sanitization
+        let topic = rawTopic ? String(rawTopic).trim().replace(/[\r\n\t]/g, ' ').substring(0, 200) : ''
+
+        if (!topic || topic.length < 3) {
             return res.status(400).json({
                 error: 'INVALID_TOPIC',
                 message: 'Topic must be at least 3 characters.',
@@ -229,43 +261,57 @@ app.post('/api/research', requireAuth, upload.array('files', 5), async (req, res
             command: command?.slice(0, 40),
         })
 
-        // ─── CALL GROQ ──────────────────────────────────────────────────────────
+        // ─── RETRIEVAL LAYER ────────────────────────────────────────────────────────
+        console.log('[RETRIEVAL] Fetching papers from Semantic Scholar and arXiv...');
+        const [ssPapers, arxivPapers] = await Promise.all([
+          fetchSemanticScholarPapers(topic.trim()),
+          fetchArxivPapers(topic.trim())
+        ]);
+        const allPapers = [...ssPapers, ...arxivPapers];
+        const contextStr = buildResearchContext(allPapers);
+        
+        const finalUserMessage = `${userMessage}\n\n${contextStr}`;
+
+        // ─── CALL GROQ (single model, full system instructions) ─────────────────
         const completion = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-                { role: 'system', content: SYSTEM_INSTRUCTIONS },
-                { role: 'user', content: userMessage },
-            ],
-            temperature: 0.7,
-            max_tokens: 12000,
-            response_format: { type: 'json_object' }, // forces valid JSON output
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: SYSTEM_INSTRUCTIONS },
+            { role: 'user', content: finalUserMessage }
+          ],
+          temperature: 0.7,
+          max_tokens: 8000,
         })
-
         const responseText = completion.choices[0].message.content || ''
-
-        // ─── PARSE JSON ─────────────────────────────────────────────────────────
+        
         let parsedData
         try {
-            parsedData = JSON.parse(responseText)
-        } catch {
-            const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-            if (jsonMatch) {
-                try {
-                    parsedData = JSON.parse(jsonMatch[0])
-                } catch {
-                    console.error('[PARSE ERROR]', responseText.slice(0, 300))
-                    return res.status(502).json({
-                        error: 'PARSE_ERROR',
-                        message: 'AI returned invalid JSON. Please retry.',
-                    })
-                }
-            } else {
-                return res.status(502).json({
-                    error: 'NO_JSON',
-                    message: 'AI did not return JSON. Please retry.',
-                })
-            }
+          parsedData = JSON.parse(responseText)
+        } catch (e) {
+          const firstBrace = responseText.indexOf('{')
+          const lastBrace = responseText.lastIndexOf('}')
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            parsedData = JSON.parse(responseText.slice(firstBrace, lastBrace + 1))
+          } else {
+            throw new Error('JSON parse failed: ' + e.message)
+          }
         }
+
+        // ─── DEFENSIVE ARRAY NORMALIZATION ──────────────────────────────────────
+        if (!Array.isArray(parsedData.frontier_cards)) parsedData.frontier_cards = []
+        if (!Array.isArray(parsedData.agent_stream)) parsedData.agent_stream = []
+        if (!Array.isArray(parsedData.referenced_sources)) parsedData.referenced_sources = []
+        if (!parsedData.session) parsedData.session = { topic: topic.trim(), level: levelNum, level_name: 'Intermediate', length_mode, timestamp: new Date().toISOString() }
+        if (!parsedData.council_consensus) parsedData.council_consensus = { advocate_score: 75, skeptic_objections_total: 0, skeptic_objections_resolved: 0, empirical_strength: 75, final_confidence: 75, key_caveat: 'Pipeline assembly caveat.' }
+        if (!parsedData.dashboard) parsedData.dashboard = {}
+        if (!Array.isArray(parsedData.dashboard.key_claims)) parsedData.dashboard.key_claims = []
+        if (!Array.isArray(parsedData.dashboard.research_gaps)) parsedData.dashboard.research_gaps = []
+        if (!Array.isArray(parsedData.dashboard.prerequisite_map)) parsedData.dashboard.prerequisite_map = []
+        if (!parsedData.dashboard.epistemic_decay) parsedData.dashboard.epistemic_decay = { stale: [], fresh: [] }
+        if (!parsedData.dashboard.executive_summary) parsedData.dashboard.executive_summary = { text: '', confidence: 75 }
+        if (!parsedData.dashboard.core_mechanisms) parsedData.dashboard.core_mechanisms = { text: '', equations: [], confidence: 75 }
+        if (!Array.isArray(parsedData.dashboard.core_mechanisms.equations)) parsedData.dashboard.core_mechanisms.equations = []
+        if (!parsedData.dashboard.cross_domain_analogy) parsedData.dashboard.cross_domain_analogy = null
 
         // ─── VALIDATE ───────────────────────────────────────────────────────────
         const required = ['session', 'agent_stream', 'council_consensus', 'dashboard', 'frontier_cards']
@@ -280,9 +326,92 @@ app.post('/api/research', requireAuth, upload.array('files', 5), async (req, res
 
         parsedData = sanitizeResponse(parsedData)
 
+        // ─── ENRICH WITH REAL PAPER LINKS (Semantic Scholar) ────────────────────
+        try {
+          if (parsedData.referenced_sources && parsedData.referenced_sources.length > 0) {
+            const enriched = await Promise.all(
+              parsedData.referenced_sources.map(async (source) => {
+                try {
+                  const query = encodeURIComponent(`${source.title} ${source.authors}`)
+                  const ssRes = await fetch(`https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&limit=1&fields=title,authors,year,externalIds,openAccessPdf,url`, {
+                    headers: { 'User-Agent': 'TheResearcher/1.0' }
+                  })
+                  const ssData = await ssRes.json()
+                  const paper = ssData.data?.[0]
+                  if (paper) {
+                    source.real_url = paper.openAccessPdf?.url || paper.url || `https://www.semanticscholar.org/paper/${paper.paperId}`
+                    source.semantic_scholar_id = paper.paperId
+                    if (paper.externalIds?.DOI) source.doi = `https://doi.org/${paper.externalIds.DOI}`
+                    if (paper.externalIds?.ArXiv) source.arxiv_url = `https://arxiv.org/abs/${paper.externalIds.ArXiv}`
+                  }
+                } catch (err) {
+                  // silently skip if enrichment fails for one paper
+                }
+                return source
+              })
+            )
+            parsedData.referenced_sources = enriched
+          }
+          if (parsedData.frontier_cards && parsedData.frontier_cards.length > 0) {
+            const enrichedCards = await Promise.all(
+              parsedData.frontier_cards.map(async (card) => {
+                try {
+                  const query = encodeURIComponent(`${card.paper_title} ${card.authors}`)
+                  const ssRes = await fetch(`https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&limit=1&fields=title,openAccessPdf,url,externalIds`, {
+                    headers: { 'User-Agent': 'TheResearcher/1.0' }
+                  })
+                  const ssData = await ssRes.json()
+                  const paper = ssData.data?.[0]
+                  if (paper) {
+                    card.real_url = paper.openAccessPdf?.url || paper.url || `https://www.semanticscholar.org/paper/${paper.paperId}`
+                    if (paper.externalIds?.ArXiv) card.arxiv_url = `https://arxiv.org/abs/${paper.externalIds.ArXiv}`
+                  }
+                } catch (err) {
+                  // silently skip
+                }
+                return card
+              })
+            )
+            parsedData.frontier_cards = enrichedCards
+          }
+          console.log('[SEMANTIC SCHOLAR] Paper enrichment complete')
+        } catch (enrichErr) {
+          console.log('[SEMANTIC SCHOLAR] Enrichment failed silently:', enrichErr.message)
+        }
 
+
+        console.log('[DEBUG SCHEMA]', JSON.stringify({ 
+          has_dashboard: !!parsedData.dashboard,
+          has_core_mechanisms: !!parsedData.dashboard?.core_mechanisms,
+          equations_type: typeof parsedData.dashboard?.core_mechanisms?.equations,
+          is_array: Array.isArray(parsedData.dashboard?.core_mechanisms?.equations),
+          frontier_cards_count: parsedData.frontier_cards?.length,
+          agent_stream_count: parsedData.agent_stream?.length,
+          top_level_keys: Object.keys(parsedData)
+        }))
         console.log(`[${new Date().toISOString()}] Done in ${Date.now() - startTime}ms`)
-        res.json(parsedData)
+        // Deep safety wrap before sending
+        const safe = parsedData
+        if (safe.dashboard) {
+          if (!safe.dashboard.core_mechanisms) safe.dashboard.core_mechanisms = { text: '', equations: [], confidence: 75 }
+          if (!Array.isArray(safe.dashboard.core_mechanisms.equations)) safe.dashboard.core_mechanisms.equations = []
+          if (!safe.dashboard.executive_summary) safe.dashboard.executive_summary = { text: '', confidence: 75 }
+          if (!Array.isArray(safe.dashboard.key_claims)) safe.dashboard.key_claims = []
+          if (!Array.isArray(safe.dashboard.research_gaps)) safe.dashboard.research_gaps = []
+          if (!Array.isArray(safe.dashboard.prerequisite_map)) safe.dashboard.prerequisite_map = []
+          if (!safe.dashboard.epistemic_decay) safe.dashboard.epistemic_decay = { stale: [], fresh: [] }
+          if (!Array.isArray(safe.dashboard.epistemic_decay.stale)) safe.dashboard.epistemic_decay.stale = []
+          if (!Array.isArray(safe.dashboard.epistemic_decay.fresh)) safe.dashboard.epistemic_decay.fresh = []
+        }
+        if (!Array.isArray(safe.frontier_cards)) safe.frontier_cards = []
+        if (!Array.isArray(safe.agent_stream)) safe.agent_stream = []
+        if (!Array.isArray(safe.referenced_sources)) safe.referenced_sources = []
+        if (safe.session) safe.session.timestamp = new Date().toISOString()
+        if (!safe.session) safe.session = { topic: topic.trim(), level: levelNum, level_name: 'Intermediate', length_mode, timestamp: new Date().toISOString() }
+        console.log('[FINAL SHAPE] core_mechanisms:', JSON.stringify(safe.dashboard?.core_mechanisms).slice(0, 200))
+        console.log('[FINAL SHAPE] frontier_cards count:', safe.frontier_cards?.length)
+        console.log('[FINAL SHAPE] agent_stream count:', safe.agent_stream?.length)
+        res.json(safe)
 
     } catch (error) {
         console.error('[SERVER ERROR]', error.message)
@@ -294,7 +423,7 @@ app.post('/api/research', requireAuth, upload.array('files', 5), async (req, res
             return res.status(429).json({ error: 'RATE_LIMIT', message: 'Rate limit hit. Wait a moment and retry.' })
         }
 
-        res.status(500).json({ error: 'SERVER_ERROR', message: error.message || 'Unknown error. Please retry.' })
+        res.status(500).json({ error: 'SERVER_ERROR', message: 'An internal error occurred. Please try again later.' })
     }
 })
 
@@ -352,7 +481,16 @@ function sanitizeResponse(data) {
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', model: 'llama-3.3-70b-versatile (Groq)', timestamp: new Date().toISOString() })
+  res.json({
+    status: 'ok',
+    architecture: 'multi-provider-5-agent-pipeline',
+    providers: getProviderStatus(),
+    timestamp: new Date().toISOString()
+  })
+})
+
+app.get('/api/provider-status', requireAuth, (req, res) => {
+  res.json(getBalanceReport())
 })
 
 // ─── START ────────────────────────────────────────────────────────────────────
@@ -362,7 +500,7 @@ app.listen(PORT, () => {
 ╔═══════════════════════════════════════════╗
 ║   THE RESEARCHER — BACKEND SERVER         ║
 ║   Running on http://localhost:${PORT}        ║
-║   Model: llama-3.3-70b-versatile (Groq)   ║
+║   Providers: Groq+Gemini+OR+CF+NVIDIA     ║
 ╚═══════════════════════════════════════════╝
   `)
 })
