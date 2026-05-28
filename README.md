@@ -15,13 +15,13 @@ From high school essays to doctoral dissertations — THE RESEARCHER is a multi-
 
 <br />
 
-[![Live Demo](https://img.shields.io/badge/▶%20LIVE%20DEMO-the--researcher.vercel.app-7B6FFF?style=for-the-badge&labelColor=0D0F1A)](https://the-researcher.vercel.app)
+[![Live Demo](https://img.shields.io/badge/▶%20LIVE%20DEMO-the--researcher.vercel.app-7B6FFF?style=for-the-badge&labelColor=0D0F1A)](https://the-researcher-app.vercel.app)
 [![GitHub Stars](https://img.shields.io/github/stars/aditya-kalla/The-Researcher?style=for-the-badge&color=D4F87A&labelColor=0D0F1A)](https://github.com/aditya-kalla/The-Researcher/stargazers)
 [![License](https://img.shields.io/badge/LICENSE-MIT-FFB7C5?style=for-the-badge&labelColor=0D0F1A)](LICENSE)
 
 <br />
 
-![Landing Page](screenshots/landing.png)
+![Landing Page](asserts/landing.png)
 
 </div>
 
