@@ -1,0 +1,67 @@
+﻿=== orchestratorPlan ===
+{
+  "researchLevel": 3,
+  "searchSubqueries": [
+    "circuits in transformer attention",
+    "causal tracing of transformer attention",
+    "understanding attention heads in large language models"
+  ],
+  "scopeNote": "The topic is already specific and technical, so the plan refines the phrasing slightly for search and provides deeper, related subqueries for a specialist-level investigation.",
+  "refinedTopic": "mechanistic interpretability of transformer attention mechanisms"
+}
+
+=== sourceVault ===
+[
+  {
+    "title": "Mechanistic Interpretability for Transformer-based Time Series Classification",
+    "doi_hint": "https://doi.org/10.48550/arXiv.2511.21514",
+    "id": "src_001",
+    "authors": "Matiss Kalnare, Sofoklis Kitharidis, Thomas B\u00e4ck, Niki van Stein",
+    "category": "FRONTIER",
+    "year": 2025,
+    "venue": "International Joint Conference on Computational Intelligence",
+    "citations": 3,
+    "abstract": "Transformer-based models are state-of-the-art in time series classification, yet their internal decision-making is complex. This paper adapts Mechanistic Interpretability techniques like activation patching, attention saliency, and sparse autoencoders from NLP to transformer architectures for time series. We systematically probe internal causal roles of individual attention heads and timesteps, revealing causal structures within these models. Experiments on a benchmark dataset construct causal graphs illustrating information propagation and highlighting key attention heads driving correct classifications. We also demonstrate sparse autoencoders' potential for uncovering interpretable latent features. Our findings offer methodological contributions to transformer interpretability and novel insights into the functional mechanics underlying transformer performance in time series classification.",
+    "relevance_note": "This paper applies mechanistic interpretability techniques to transformer attention mechanisms in the context of time series classification, demonstrating how internal causal roles can be revealed.",
+    "open_access": true
+  },
+  {
+    "title": "Disentangling Recall and Reasoning in Transformer Models through Layer-wise Attention and Activation Analysis",
+    "doi_hint": "https://doi.org/10.48550/arXiv.2510.03366",
+    "id": "src_002",
+    "authors": "Harshwardhan Fartale, Ashish Kattamuri, Rahul Raja, A. Vats, Ishita Prasad, Akshata Kishore Moharir",
+    "category": "FRONTIER",
+    "year": 2025,
+    "venue": "arXiv.org",
+    "citations": 5,
+    "abstract": "Transformer-based language models excel at both recall and reasoning, but it's unclear if these abilities rely on distinct internal mechanisms. This study uses mechanistic interpretability with controlled synthetic linguistic puzzles to probe transformers at layer, head, and neuron levels. Combining activation patching and structured ablations, it causally measures component contributions to each task type. Across two model families (Qwen and LLaMA), interventions on distinct layers and attention heads lead to selective impairments, with 'recall circuits' reducing fact-retrieval and 'reasoning circuits' reducing multi-step inference. The paper provides causal evidence that recall and reasoning rely on separable but interacting circuits in transformer models, advancing mechanistic interpretability.",
+    "relevance_note": "This research investigates how recall and reasoning functionalities are implemented within transformer attention mechanisms using mechanistic interpretability, providing circuit-level insights.",
+    "open_access": true
+  },
+  {
+    "title": "Mechanistic Exploration of Backdoored Large Language Model Attention Patterns",
+    "doi_hint": "https://doi.org/10.48550/arXiv.2508.15847",
+    "id": "src_003",
+    "authors": "M. Baker, Lakshmi Babu Saheer",
+    "category": "FRONTIER",
+    "year": 2025,
+    "venue": "arXiv.org",
+    "citations": 2,
+    "abstract": "Backdoor attacks in LLMs pose significant safety risks, and this study uses mechanistic interpretability to explore resulting internal structural differences. Comparing clean Qwen2.5-3B models with versions poisoned by single-token versus multi-token triggers, the authors analyzed attention head mechanisms via ablation, activation patching, and KL divergence. Findings reveal distinct attention pattern deviations concentrated in later transformer layers. Single-token triggers induced more localized changes, while multi-token triggers caused more diffuse alterations across heads. This indicates backdoors leave detectable attention signatures whose structure depends on trigger complexity, which can be leveraged for detection and mitigation strategies.",
+    "relevance_note": "This paper employs mechanistic interpretability to analyze how backdoor attacks alter attention patterns within large language models, contributing to understanding and detecting vulnerabilities.",
+    "open_access": true
+  },
+  {
+    "title": "From Indirect Object Identification to Syllogisms: Exploring Binary Mechanisms in Transformer Circuits",
+    "doi_hint": "https://doi.org/10.48550/arXiv.2508.16109",
+    "id": "src_004",
+    "authors": "Karim Saraipour",
+    "category": "FRONTIER",
+    "year": 2025,
+    "venue": "arXiv.org",
+    "citations": 1,
+    "abstract": "Transformer-based language models can perform diverse tasks, and mechanistic interpretability (MI) aims to reverse engineer components for task completion. This paper investigates GPT-2 small's ability to handle binary truth values using syllogistic prompts, requiring complex logical reasoning. Through analyzing syllogism tasks, the study identifies multiple circuits that mechanistically explain GPT-2's logical-reasoning capabilities and uncovers binary mechanisms, including producing negated tokens via negative heads. An evaluation using a faithfulness metric shows a circuit with five attention heads achieves over 90% of the original model's performance. These insights contribute to understanding model reasoning and support future mechanistic interpretability research.",
+    "relevance_note": "This work explores the mechanistic underpinnings of logical reasoning in transformers by identifying specific attention heads and MLP circuits responsible for handling binary truth values and syllogisms.",
+    "open_access": true
+  }
+]

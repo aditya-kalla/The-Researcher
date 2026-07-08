@@ -1,0 +1,129 @@
+﻿=== EMPIRICIST ===
+{
+  "sourceAssessments": [
+    {
+      "note": "This is a peer-reviewed computational study directly applying mechanistic interpretability to transformer attention mechanisms, providing moderate evidence.",
+      "study_design": "computational/experimental study applying mechanistic interpretability techniques to transformer models for time series classification",
+      "population_or_system_directness": "DIRECT",
+      "evidence_tier": "MODERATE",
+      "sample_size": "not stated",
+      "source_id": "src_001"
+    },
+    {
+      "note": "This direct computational study of transformer mechanisms is presented as preliminary evidence due to its publication on a preprint server.",
+      "study_design": "computational/experimental study using mechanistic interpretability on transformer models with synthetic linguistic puzzles",
+      "population_or_system_directness": "DIRECT",
+      "evidence_tier": "PRELIMINARY",
+      "sample_size": "two model families (Qwen and LLaMA)",
+      "source_id": "src_002"
+    },
+    {
+      "note": "This direct computational study of transformer attention patterns is preliminary as it is published on a preprint server.",
+      "study_design": "computational/experimental study using mechanistic interpretability to compare attention patterns in clean vs. backdoored transformer models",
+      "population_or_system_directness": "DIRECT",
+      "evidence_tier": "PRELIMINARY",
+      "sample_size": "Qwen2.5-3B models",
+      "source_id": "src_003"
+    },
+    {
+      "note": "This direct computational investigation of GPT-2's attention mechanisms is preliminary due to its status as a preprint.",
+      "study_design": "computational/experimental study using mechanistic interpretability on GPT-2 small to understand logical reasoning capabilities",
+      "population_or_system_directness": "DIRECT",
+      "evidence_tier": "PRELIMINARY",
+      "sample_size": "GPT-2 small model",
+      "source_id": "src_004"
+    }
+  ],
+  "overallEvidenceStrength": "The evidence base consists of direct computational studies investigating transformer attention mechanisms, with one moderate-tier peer-reviewed conference paper and three preliminary-tier preprint papers."
+}
+
+=== CLASSIFIER ===
+{
+  "maturityNote": "All provided sources are from 2025, have very low citation counts (1-5), and are explicitly categorized as 'FRONTIER', indicating a newly developing area.",
+  "subdomains": [
+    "Machine Learning",
+    "Natural Language Processing",
+    "Explainable AI"
+  ],
+  "controversyFlag": false,
+  "primaryDomain": "Computer Science / Artificial Intelligence",
+  "interdisciplinaryLinks": [],
+  "maturityLevel": "EMERGING",
+  "controversyNote": "The abstracts describe novel applications and findings in mechanistic interpretability but do not present conflicting claims, major debates, or contradictory results among researchers within this set."
+}
+
+=== DASHBOARD (SYNTHESIS) ===
+{
+  "coreMechanisms": [
+    {
+      "mechanism": "Causal structures and key attention heads for time series classification",
+      "explanation": "Mechanistic interpretability techniques like activation patching, attention saliency, and sparse autoencoders are applied to transformer architectures to reveal the causal roles of individual attention heads and timesteps in time series classification.",
+      "source_ids": [
+        "src_001"
+      ]
+    },
+    {
+      "mechanism": "Separable recall and reasoning circuits",
+      "explanation": "Through activation patching and structured ablations, distinct 'recall circuits' (impacting fact-retrieval) and 'reasoning circuits' (impacting multi-step inference) have been identified within transformer layers and attention heads.",
+      "source_ids": [
+        "src_002"
+      ]
+    },
+    {
+      "mechanism": "Attention pattern deviations due to backdoors",
+      "explanation": "Backdoor attacks induce detectable alterations in attention head mechanisms, concentrated in later transformer layers. Single-token triggers lead to localized changes, while multi-token triggers cause more diffuse alterations across heads.",
+      "source_ids": [
+        "src_003"
+      ]
+    },
+    {
+      "mechanism": "Binary mechanisms and negative heads for logical reasoning",
+      "explanation": "Specific attention heads and MLP circuits, including 'negative heads' responsible for producing negated tokens, have been identified as underpinning a transformer's ability to handle binary truth values and perform syllogistic reasoning.",
+      "source_ids": [
+        "src_004"
+      ]
+    }
+  ],
+  "executiveSummary": "Mechanistic interpretability of transformer attention is an emerging field, characterized by recent research (2025) exploring the internal workings of these models. While the initial findings are promising and not flagged as controversial, the evidence for most claims is currently preliminary, with one study reaching a moderate evidence tier. Research is uncovering specific attention-based circuits responsible for tasks like recall, reasoning, logical operations, and even detecting adversarial attacks, suggesting significant potential for understanding and improving transformer models.",
+  "openQuestions": [
+    "How do these identified mechanisms generalize across a wider range of transformer architectures, tasks, and data modalities?",
+    "What are the precise interaction mechanisms between the 'recall circuits' and 'reasoning circuits' in transformer models?",
+    "How can the insights from backdoor-induced attention pattern deviations be best leveraged for developing robust and proactive detection and mitigation strategies?",
+    "What are the implications of understanding binary mechanisms for designing more robust and transparent AI systems capable of complex logical operations?",
+    "Given the preliminary nature of much of the evidence, what further empirical validation and replication studies are needed to solidify these findings?"
+  ],
+  "keyClaims": [
+    {
+      "supporting_source_ids": [
+        "src_001"
+      ],
+      "caveats": "Evidence tier is MODERATE, based on a computational/experimental study in a peer-reviewed conference.",
+      "claim": "Mechanistic interpretability techniques can be successfully adapted to identify causal structures and key attention heads in transformer models for time series classification.",
+      "confidence": 82
+    },
+    {
+      "supporting_source_ids": [
+        "src_002"
+      ],
+      "caveats": "Evidence tier is PRELIMINARY, based on a computational/experimental study published as a preprint.",
+      "claim": "Transformer models utilize separable yet interacting internal circuits, identifiable via mechanistic interpretability, for distinct cognitive functions such as recall and reasoning.",
+      "confidence": 78
+    },
+    {
+      "supporting_source_ids": [
+        "src_003"
+      ],
+      "caveats": "Evidence tier is PRELIMINARY, based on a computational/experimental study published as a preprint.",
+      "claim": "Backdoor attacks in Large Language Models (LLMs) produce distinct and detectable deviations in attention patterns, with their structure varying based on the complexity of the trigger.",
+      "confidence": 74
+    },
+    {
+      "supporting_source_ids": [
+        "src_004"
+      ],
+      "caveats": "Evidence tier is PRELIMINARY, based on a computational/experimental study published as a preprint.",
+      "claim": "Specific attention heads and MLP circuits within transformers can be mechanistically linked to complex logical reasoning capabilities, including the handling of binary truth values and syllogisms.",
+      "confidence": 74
+    }
+  ]
+}

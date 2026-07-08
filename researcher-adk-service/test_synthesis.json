@@ -1,0 +1,30 @@
+{
+  "topic": "Meditation cures clinical depression in adults with major depressive disorder",
+  "user_id": "test",
+  "session_id": "test-session-009",
+  "write_to_firestore": false,
+  "advocate": {
+    "agent": "ADVOCATE",
+    "position_summary": "The provided research does not offer evidence to support the claim that meditation cures clinical depression in adults with major depressive disorder.",
+    "key_arguments": [
+      {"argument": "One study excluded participants with diagnosed mental health conditions and only measured self-reported stress in healthy students.", "supporting_source_ids": ["src_001"]},
+      {"argument": "Another study was conducted on mice using environmental enrichment, not human meditation or depression treatment.", "supporting_source_ids": ["src_002"]}
+    ],
+    "confidence": 95
+  },
+  "empiricist": {
+    "agent": "EMPIRICIST",
+    "source_assessments": [
+      {"source_id": "src_001", "evidence_tier": "INDIRECT", "note": "Healthy population, not clinical depression."},
+      {"source_id": "src_002", "evidence_tier": "INDIRECT", "note": "Animal model, not human."}
+    ],
+    "overall_evidence_strength": "The evidence base is indirect, consisting of a small non-clinical human study and an animal model, both distinct from the actual topic."
+  },
+  "classifier": {
+    "agent": "CLASSIFIER",
+    "primary_domain": "Psychology/Neuroscience",
+    "maturity_level": "INSUFFICIENT_DATA",
+    "controversy_flag": false,
+    "controversy_note": "Not enough directly relevant evidence was found to assess this."
+  }
+}

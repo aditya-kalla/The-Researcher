@@ -1,0 +1,28 @@
+{
+  "topic": "Meditation cures clinical depression in adults with major depressive disorder",
+  "user_id": "test",
+  "session_id": "test-session-005",
+  "write_to_firestore": false,
+  "referenced_sources": [
+    {
+      "id": "src_001",
+      "title": "Effects of an 8-Week Mindfulness Program on Self-Reported Stress in Healthy College Students",
+      "authors": "J. Ferreira, A. Solberg",
+      "year": 2018,
+      "venue": "Journal of Student Wellness",
+      "citations": 31,
+      "abstract": "This study examined self-reported stress levels in 24 healthy undergraduate students before and after an 8-week mindfulness meditation program. Participants reported modest reductions in self-perceived stress via questionnaire. No participants had a diagnosed mental health condition. Depression, clinical outcomes, and long-term effects were not measured.",
+      "category": "EMPIRICAL"
+    },
+    {
+      "id": "src_002",
+      "title": "Environmental Enrichment Reduces Anxiety-Like Behavior and Increases Hippocampal Neurogenesis in Mice",
+      "authors": "T. Okonkwo, L. Bianchi",
+      "year": 2016,
+      "venue": "Neuroscience Letters",
+      "citations": 58,
+      "abstract": "We investigated the effects of environmental enrichment, sometimes used as a model for meditative-like calm states, on anxiety-like behavior and hippocampal neurogenesis in laboratory mice. Enriched mice showed reduced anxiety-like behavior in maze tests and increased neurogenesis markers compared to controls. This is a preclinical animal model study; no human subjects, meditation practice, or depression diagnoses were involved.",
+      "category": "EMPIRICAL"
+    }
+  ]
+}

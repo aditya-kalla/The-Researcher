@@ -2,3 +2,7 @@
 .env.local
 researcher-backend/.env
 node_modules/
+Groq-version/
+researcher-adk-service/env.yaml
+THE_RESEARCHER_Technical_Reference_FULL.docx
+project-source.zip

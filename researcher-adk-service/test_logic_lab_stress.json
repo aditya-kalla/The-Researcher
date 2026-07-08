@@ -1,0 +1,28 @@
+{
+  "topic": "Coffee consumption improves long-term memory formation in elderly adults over age 65",
+  "user_id": "test",
+  "session_id": "test-session-004",
+  "write_to_firestore": false,
+  "referenced_sources": [
+    {
+      "id": "src_001",
+      "title": "Acute Caffeine Effects on Reaction Time During Simulated Driving in Young Adults",
+      "authors": "M. Torres, K. Lindqvist",
+      "year": 2015,
+      "venue": "Journal of Applied Psychophysiology",
+      "citations": 12,
+      "abstract": "This study examined the short-term effects of a single 200mg caffeine dose on reaction time and alertness in 40 healthy university students (mean age 21) during a 30-minute simulated driving task. Caffeine significantly improved reaction time compared to placebo within the first hour post-consumption. No measures of memory, cognition beyond alertness, or long-term outcomes were assessed.",
+      "category": "EMPIRICAL"
+    },
+    {
+      "id": "src_002",
+      "title": "Historical Review of Coffee Trade Economics in the 19th Century",
+      "authors": "R. Fennimore",
+      "year": 2010,
+      "venue": "Economic History Review",
+      "citations": 4,
+      "abstract": "This paper traces the economic history of coffee as a global commodity during the 19th century, focusing on colonial trade routes, pricing structures, and labor systems. No biological, medical, or cognitive claims are made.",
+      "category": "REVIEW"
+    }
+  ]
+}

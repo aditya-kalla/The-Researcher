@@ -1,0 +1,28 @@
+{
+  "topic": "machine consciousness and theories of artificial sentience",
+  "user_id": "test",
+  "session_id": "test-session-003",
+  "write_to_firestore": false,
+  "referenced_sources": [
+    {
+      "id": "src_001",
+      "title": "Why the Brain Cannot Be a Digital Computer: History-Dependence and the Computational Limits of Consciousness",
+      "authors": "Andrew Knight",
+      "year": 2025,
+      "venue": "arXiv",
+      "citations": 0,
+      "abstract": "This paper presents a novel information-theoretic proof demonstrating that the human brain as currently understood cannot function as a classical digital computer. Through systematic quantification of distinguishable conscious states and their historical dependencies, we establish that the minimum information required to specify a conscious state exceeds the physical information capacity of the human brain by a significant factor.",
+      "category": "FRONTIER"
+    },
+    {
+      "id": "src_002",
+      "title": "ConsciousControlFlow(CCF): A Demonstration for conscious Artificial Intelligence",
+      "authors": "Hongzhi Wang, Bozhou Chen, Yueyang Xu, Kaixin Zhang, Shengwen Zheng",
+      "year": 2020,
+      "venue": "arXiv",
+      "citations": 0,
+      "abstract": "In this demo, we present ConsciousControlFlow(CCF), a prototype system to demonstrate conscious Artificial Intelligence (AI).",
+      "category": "EMPIRICAL"
+    }
+  ]
+}

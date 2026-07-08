@@ -1,0 +1,26 @@
+{
+  "topic": "mechanistic interpretability of transformer attention",
+  "user_id": "test",
+  "session_id": "test-session-008",
+  "write_to_firestore": false,
+  "referenced_sources": [
+    {
+      "id": "src_001",
+      "title": "Attention Lens: A Tool for Mechanistically Interpreting the Attention Head Information Retrieval Mechanism",
+      "authors": "Mansi Sakarvadia, Arham Khan, Aswathy Ajith, Daniel Grzenda, Nathaniel Hudson, André Bauer, Kyle Chard, Ian Foster",
+      "year": 2023,
+      "venue": "arXiv",
+      "citations": 0,
+      "abstract": "Transformer-based Large Language Models (LLMs) are the state-of-the-art for natural language tasks. Recent work has attempted to decode, by reverse engineering the role of linear layers, the internal mechanisms by which LLMs arrive at their final predictions. We propose Attention Lens, a tool that enables researchers to translate the outputs of attention heads into vocabulary tokens via learned attention-head-specific transformations called lenses."
+    },
+    {
+      "id": "src_002",
+      "title": "Mamba Knockout for Unraveling Factual Information Flow",
+      "authors": "Nir Endy, Idan Daniel Grosbard, Yuval Ran-Milo, Yonatan Slutzky, Itay Tshuva, Raja Giryes",
+      "year": 2025,
+      "venue": "arXiv",
+      "citations": 0,
+      "abstract": "This paper investigates the flow of factual information in Mamba State-Space Model (SSM)-based language models. We adapt attentional interpretability techniques originally developed for Transformers to both Mamba-1 and Mamba-2."
+    }
+  ]
+}
