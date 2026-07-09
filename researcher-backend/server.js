@@ -16,7 +16,7 @@ dotenv.config()
 if (!process.env.GROQ_API_KEY) {
   console.warn('[WARNING] GROQ_API_KEY is not set. This is fine — /api/research no longer uses Groq.')
 }
-if (!process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
+if (!process.env.FIREBASE_CLIENT_EMAIL || !(process.env.FIREBASE_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY_B64)) {
   console.error('[FATAL ERROR] Firebase Admin credentials missing in environment variables.')
   process.exit(1)
 }
@@ -26,11 +26,36 @@ if (!process.env.PYTHON_SERVICE_URL) {
 
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8080'
 
+/**
+ * Resolves the Firebase Admin private key, preferring a base64-encoded
+ * FIREBASE_PRIVATE_KEY_B64 over the raw FIREBASE_PRIVATE_KEY.
+ *
+ * Why: pasting a multi-line PEM key (with literal \n sequences) into a
+ * hosting platform's web UI text field is a common source of silent
+ * corruption — quotes, whitespace, or newline handling can differ between
+ * platforms in ways that are invisible when you look at the value but
+ * break strict PEM parsing (surfaces as an OpenSSL "DECODER routines"
+ * error). Base64 sidesteps this entirely: it's one unbroken string with
+ * no newlines or special characters for a UI to mangle.
+ *
+ * FIREBASE_PRIVATE_KEY_B64 should be the base64 encoding of the exact
+ * same literal-\n-escaped string that FIREBASE_PRIVATE_KEY would contain
+ * (i.e. base64 of "-----BEGIN PRIVATE KEY-----\nMII...\n-----END...-----\n"
+ * as literal text, not of the key with real newlines already substituted).
+ */
+function resolveFirebasePrivateKey() {
+  if (process.env.FIREBASE_PRIVATE_KEY_B64) {
+    const decoded = Buffer.from(process.env.FIREBASE_PRIVATE_KEY_B64, 'base64').toString('utf8')
+    return decoded.replace(/\\n/g, '\n')
+  }
+  return process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+}
+
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: "the-researcher-ef159",
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+    privateKey: resolveFirebasePrivateKey()
   })
 })
 
