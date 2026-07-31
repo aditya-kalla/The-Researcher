@@ -46,11 +46,11 @@ export interface ResearchResponse {
     executive_summary: { text: string; confidence: number };
     core_mechanisms: { text: string; equations: string[]; confidence: number };
     key_claims: KeyClaim[];
-    epistemic_decay: {
+    epistemic_decay?: {
       stale: Array<{ claim: string; stale_as_of: string; superseded_by: string; impact: string }>;
       fresh: Array<{ claim: string; last_validated: string; source: string }>;
     };
-    cross_domain_analogy: {
+    cross_domain_analogy?: {
       domain_a: string;
       domain_b: string;
       structural_isomorphism: string;

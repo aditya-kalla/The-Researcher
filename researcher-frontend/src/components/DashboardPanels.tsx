@@ -117,50 +117,76 @@ export function DashboardPanels({
       {/* Epistemic decay */}
       <motion.div variants={item}>
         <RetroWindow title="⚠ EPISTEMIC_DECAY.log" variant="alert">
-          {d.epistemic_decay.stale.map((s, i) => (
-            <div key={`s${i}`} className="mb-3">
-              <p className="font-mono text-[12px] text-sakura-alert line-through opacity-80">{s.claim}</p>
-              <p className="mt-1 font-mono text-[10px] text-mouse-gray">
-                stale as of {s.stale_as_of} · superseded by {s.superseded_by}
-              </p>
-              <p className="mt-1 font-body text-[12px] italic text-mono-white/70">impact: {s.impact}</p>
-            </div>
-          ))}
-          {d.epistemic_decay.fresh.map((f, i) => (
-            <div key={`f${i}`} className="border-t border-pixel-border pt-3">
-              <p className="font-mono text-[12px] text-lime-signal">✓ {f.claim}</p>
-              <p className="mt-1 font-mono text-[10px] text-mouse-gray">
-                validated {f.last_validated} · {f.source}
-              </p>
-            </div>
-          ))}
+          {d.epistemic_decay?.stale?.length || d.epistemic_decay?.fresh?.length ? (
+            <>
+              {d.epistemic_decay.stale.map((s, i) => (
+                <div key={`s${i}`} className="mb-3">
+                  <p className="font-mono text-[12px] text-sakura-alert line-through opacity-80">{s.claim}</p>
+                  <p className="mt-1 font-mono text-[10px] text-mouse-gray">
+                    stale as of {s.stale_as_of} · superseded by {s.superseded_by}
+                  </p>
+                  <p className="mt-1 font-body text-[12px] italic text-mono-white/70">impact: {s.impact}</p>
+                </div>
+              ))}
+              {d.epistemic_decay.fresh.map((f, i) => (
+                <div key={`f${i}`} className="border-t border-pixel-border pt-3">
+                  <p className="font-mono text-[12px] text-lime-signal">✓ {f.claim}</p>
+                  <p className="mt-1 font-mono text-[10px] text-mouse-gray">
+                    validated {f.last_validated} · {f.source}
+                  </p>
+                </div>
+              ))}
+            </>
+          ) : (
+            <p className="font-mono text-[11px] text-mouse-gray opacity-70">
+              Not run for this session. Trigger Logic Lab (SKEPTIC) to check claims for epistemic decay.
+            </p>
+          )}
         </RetroWindow>
       </motion.div>
 
       {/* Cross-domain analogy */}
       <motion.div variants={item}>
         <RetroWindow title="◈ CROSS_DOMAIN_LINK.dat" variant="accent">
-          <div className="flex items-center justify-around py-2">
-            <PixelNode label={d.cross_domain_analogy.domain_a} color="var(--accent-primary)" />
-            <DashedArrow />
-            <PixelNode label={d.cross_domain_analogy.domain_b} color="var(--accent-signal)" />
-          </div>
-          <p className="mt-4 font-body text-[13px] italic leading-[1.7] text-[rgba(245,237,211,0.85)]">
-            {d.cross_domain_analogy.structural_isomorphism}
-          </p>
-          <p className="mt-2 font-mono text-[11px] text-periwinkle-soft">
-            → {d.cross_domain_analogy.implication}
-          </p>
-          <p className="mt-1 font-mono text-[11px] text-lime-signal">
-            ⟡ transferable: {d.cross_domain_analogy.transferable_technique}
-          </p>
-          {onAnalogyDetail && (
-            <button
-              onClick={onAnalogyDetail}
-              className="mt-4 border border-periwinkle-soft px-3 py-1.5 font-pixel text-[8px] text-periwinkle-soft hover:bg-periwinkle-soft/10"
-            >
-              ◈ DETAILS
-            </button>
+          {d.cross_domain_analogy ? (
+            <>
+              <div className="flex items-center justify-around py-2">
+                <PixelNode label={d.cross_domain_analogy.domain_a} color="var(--accent-primary)" />
+                <DashedArrow />
+                <PixelNode label={d.cross_domain_analogy.domain_b} color="var(--accent-signal)" />
+              </div>
+              <p className="mt-4 font-body text-[13px] italic leading-[1.7] text-[rgba(245,237,211,0.85)]">
+                {d.cross_domain_analogy.structural_isomorphism}
+              </p>
+              <p className="mt-2 font-mono text-[11px] text-periwinkle-soft">
+                → {d.cross_domain_analogy.implication}
+              </p>
+              <p className="mt-1 font-mono text-[11px] text-lime-signal">
+                ⟡ transferable: {d.cross_domain_analogy.transferable_technique}
+              </p>
+              {onAnalogyDetail && (
+                <button
+                  onClick={onAnalogyDetail}
+                  className="mt-4 border border-periwinkle-soft px-3 py-1.5 font-pixel text-[8px] text-periwinkle-soft hover:bg-periwinkle-soft/10"
+                >
+                  ◈ DETAILS
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="py-2">
+              <p className="font-mono text-[11px] text-mouse-gray opacity-70">
+                Not run for this session. GRAPH_ARCHITECT runs on demand.
+              </p>
+              {onAnalogyDetail && (
+                <button
+                  onClick={onAnalogyDetail}
+                  className="mt-4 border border-periwinkle-soft px-3 py-1.5 font-pixel text-[8px] text-periwinkle-soft hover:bg-periwinkle-soft/10"
+                >
+                  ◈ FIND ANALOGY
+                </button>
+              )}
+            </div>
           )}
         </RetroWindow>
       </motion.div>

@@ -743,7 +743,7 @@ function PaperSidebar({
 }) {
   const open = !!paper;
   const linkedGap = researchData?.dashboard.research_gaps[0];
-  const linkedDecay = researchData?.dashboard.epistemic_decay.stale[0];
+  const linkedDecay = researchData?.dashboard.epistemic_decay?.stale[0];
   const linkedClaim = researchData?.dashboard.key_claims[0];
 
   const [vaultTab, setVaultTab] = useState<"overview" | "document">("overview");
